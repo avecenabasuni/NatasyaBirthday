@@ -1,0 +1,123 @@
+﻿<!-- index.html -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>Natasya — 8-bit Birthday Quest</title>
+
+    <!-- Data-URL favicon (no 404 on GitHub Pages) -->
+    <link
+      rel="icon"
+      href="data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjZmY4YmE3IiB2aWV3Qm94PSIwIDAgMTYgMTYiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjE2IiBoZWlnaHQ9IjE2IiBmaWxsPSIjZmZkMWQxIi8+PHBhdGggZD0iTTggMTQgTDMgOSA5IDUgMTMgOSA4IDE0eiIgZmlsbD0iI2ZmOGJhNyIvPjwvc3ZnPg=="
+    />
+
+    <!-- 8-bit font (global, used for ALL UI) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="./style.css" />
+
+    <!-- Libraries (HTTPS CDN) -->
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/canvas-confetti/1.9.3/confetti.browser.min.js"
+      defer
+    ></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.min.js"
+      defer
+    ></script>
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"
+    ></script>
+
+    <!-- App -->
+    <script src="./app.js" defer></script>
+  </head>
+  <body>
+    <div
+      id="app"
+      class="screen"
+      role="application"
+      aria-label="Natasya 8-bit Birthday"
+    >
+      <!-- HUD -->
+      <header class="hud pixel-border">
+        <div class="hud-left">
+          <span class="brand">🎂 Natasya’s Day</span>
+        </div>
+        <div class="hud-right">
+          <button
+            id="btnMute"
+            class="icon-btn pixel-border"
+            title="Mute/Unmute"
+            aria-pressed="false"
+          >
+            🔊
+          </button>
+          <button
+            id="btnBGM"
+            class="icon-btn pixel-border"
+            title="Play/Pause BGM"
+            aria-pressed="false"
+          >
+            ♫
+          </button>
+          <span class="stars" aria-live="polite"
+            >⭐ <b id="starCount">0</b>/8</span
+          >
+        </div>
+      </header>
+
+      <!-- Scene card -->
+      <main
+        id="scene-root"
+        class="card pixel-border"
+        tabindex="-1"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        <!-- Transitions -->
+        <div id="fx-iris" class="fx-iris"></div>
+        <div id="fx-tiles" class="fx-tiles"></div>
+      </main>
+
+      <!-- Status bar (touch-only controls) -->
+      <footer class="statusbar pixel-border">
+        <div class="hint-min" role="group" aria-label="Controls hint">
+          <span class="hitem"><b>A</b><span>Confirm</span></span>
+          <span class="hitem"><b>B</b><span>Back</span></span>
+          <span class="hitem h-swipe">
+            <svg class="icon-swipe" viewBox="0 0 36 12" aria-hidden="true">
+              <path
+                d="M2 6h32M22 2l4 4-4 4M14 10l-4-4 4-4"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              />
+            </svg>
+            <span>Swipe</span><small>where relevant</small>
+          </span>
+        </div>
+        <div class="controls">
+          <button id="btnB" class="btn-b" aria-label="Back (B)">B</button>
+          <button id="btnA" class="btn-a" aria-label="Confirm / Next (A)">
+            A
+          </button>
+        </div>
+      </footer>
+
+      <!-- Confetti canvas -->
+      <canvas id="confetti-canvas"></canvas>
+    </div>
+  </body>
+</html>
