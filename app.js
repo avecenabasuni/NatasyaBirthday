@@ -208,10 +208,17 @@
             Howler.ctx.resume();
           } catch {}
         }
-        const src = (name) => [
-          `${AUDIO_BASE}${name}.ogg`,
-          `${AUDIO_BASE}${name}.mp3`,
-        ];
+        const codecs = {
+          ogg: !!Howler.codecs?.("ogg"),
+          mp3: !!Howler.codecs?.("mp3"),
+        };
+        const src = (name) => {
+          const list = [];
+          if (codecs.ogg) list.push(`${AUDIO_BASE}${name}.ogg`);
+          if (codecs.mp3) list.push(`${AUDIO_BASE}${name}.mp3`);
+          if (!list.length) list.push(`${AUDIO_BASE}${name}.mp3`);
+          return list;
+        };
 
         this.sfx.confirm = withLoadError(
           new Howl({ src: src("confirm"), volume: 0.9, preload: true }),
