@@ -1,5 +1,4 @@
-﻿// app.js
-(() => {
+﻿(() => {
   const $ = (s, el = document) => el.querySelector(s);
   const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 
@@ -12,10 +11,10 @@
   const starCountEl = $("#starCount");
   const fxIris = $("#fx-iris");
   const fxTiles = $("#fx-tiles");
-  const confettiCanvas = document.getElementById("confetti-canvas");
+  const confettiCanvas = $("#confetti-canvas");
   let confettiApi = null;
 
-  /* ---------- iOS 100vh fix (debounced) ---------- */
+  /* ---------- iOS 100vh fix ---------- */
   const debounce = (fn, ms = 150) => {
     let t;
     return (...a) => {
@@ -33,33 +32,21 @@
   addEventListener("orientationchange", setVH, { passive: true });
 
   const prefersReduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const DUR = prefersReduced ? 140 : 520;
 
-  /* ---------- CONFETTI (square) ---------- */
+  /* ---------- Confetti ---------- */
   function initConfetti() {
     try {
-      if (window.confetti?.create && confettiCanvas) {
+      if (!confettiApi && window.confetti?.create && confettiCanvas) {
         confettiApi = window.confetti.create(confettiCanvas, {
           resize: true,
           useWorker: true,
         });
       }
-    } catch (e) {
-      /* no-op */
-    }
+    } catch {}
   }
   initConfetti();
-  if (!confettiApi) {
-    const s = document.createElement("script");
-    s.src =
-      "https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js";
-    s.async = true;
-    s.onload = initConfetti;
-    document.head.appendChild(s);
-  }
-  const confetti = window.confetti?.create
-    ? window.confetti.create(confettiCanvas, { resize: true, useWorker: true })
-    : null;
+  if (!confettiApi) addEventListener("load", initConfetti, { once: true });
+
   const PALETTE = [
     "#fff5e4",
     "#ffe3e1",
@@ -69,9 +56,9 @@
     "#b9ffb3",
   ];
   function confettiBurst(kind = "mini") {
-    if (!confettiApi) return; // fail gracefully tanpa error
+    if (!confettiApi) return;
     const base = { shapes: ["square"], colors: PALETTE };
-    if (kind === "mini") {
+    if (kind === "mini")
       confettiApi({
         ...base,
         particleCount: 40,
@@ -79,7 +66,7 @@
         scalar: 0.9,
         origin: { y: 0.2 },
       });
-    } else if (kind === "base") {
+    else if (kind === "base")
       confettiApi({
         ...base,
         particleCount: 100,
@@ -87,7 +74,7 @@
         startVelocity: 40,
         gravity: 0.9,
       });
-    } else if (kind === "finale") {
+    else if (kind === "finale") {
       confettiApi({
         ...base,
         particleCount: 120,
@@ -105,72 +92,57 @@
     }
   }
 
-  // ---------- Floating Balloons (global background) ----------
+  /* ---------- Floating Balloons (global) ---------- */
   const layers = { balloons: null, stage: null };
-
-  function rand(min, max) {
-    return Math.random() * (max - min) + min;
-  }
+  const rand = (a, b) => Math.random() * (b - a) + a;
 
   function generateBalloons(container, count = 18) {
     container.innerHTML = "";
     for (let i = 0; i < count; i++) {
       const b = document.createElement("i");
       b.className = "ib" + (i % 2 ? " alt" : "");
-      const x = Math.random() * 100;
-      const y = Math.random() * 100;
-      const sizeVmin = Math.round(rand(7, 11));
-      const sizePx = Math.round(rand(48, 110));
-      const dur = rand(5.5, 8).toFixed(2) + "s";
-      const delay = rand(-2, 1.5).toFixed(2) + "s";
-      const ampY = Math.round(rand(10, 20)) + "px";
-      const ampX = Math.round(rand(-14, 14)) + "px";
-      const op = rand(0.18, 0.38).toFixed(2);
-
+      const x = Math.random() * 100,
+        y = Math.random() * 100;
+      const sizeVmin = Math.round(rand(7, 11)),
+        sizePx = Math.round(rand(48, 110));
       b.style.setProperty("--x", x + "%");
       b.style.setProperty("--y", y + "%");
       b.style.setProperty(
         "--size",
         `clamp(40px, ${sizeVmin}vmin, ${sizePx}px)`
       );
-      b.style.setProperty("--dur", dur);
-      b.style.setProperty("--delay", delay);
-      b.style.setProperty("--ampY", ampY);
-      b.style.setProperty("--ampX", ampX);
-      b.style.setProperty("--o", op);
-
+      b.style.setProperty("--dur", rand(5.5, 8).toFixed(2) + "s");
+      b.style.setProperty("--delay", rand(-2, 1.5).toFixed(2) + "s");
+      b.style.setProperty("--ampY", Math.round(rand(10, 20)) + "px");
+      b.style.setProperty("--ampX", Math.round(rand(-14, 14)) + "px");
+      b.style.setProperty("--o", rand(0.18, 0.38).toFixed(2));
       container.appendChild(b);
     }
   }
-
   function ensureBalloonsLayer() {
-    // pastikan #scene-root jadi konteks posisi
     root.style.position = root.style.position || "relative";
-
     if (!layers.balloons) {
       const deco = document.createElement("div");
-      deco.className = "float-balloons"; // style di CSS (absolute, inset:0)
-      generateBalloons(deco, 18); // bikin sekali
+      deco.className = "float-balloons";
+      generateBalloons(deco, 18);
       layers.balloons = deco;
       root.appendChild(deco);
     }
     if (!layers.stage) {
       const stage = document.createElement("div");
-      stage.className = "stage-layer"; // tempat semua konten scene
-      root.appendChild(stage);
+      stage.className = "stage-layer";
       layers.stage = stage;
+      root.appendChild(stage);
     }
   }
 
-  /* ---------- AUDIO (Howler) — file-based ---------- */
+  /* ---------- Audio (Howler) ---------- */
   const AUDIO_BASE = "./assets/audio/";
   const readMuted = () => sessionStorage.getItem("muted") === "1";
-  const writeMuted = (flag) =>
-    sessionStorage.setItem("muted", flag ? "1" : "0");
+  const writeMuted = (f) => sessionStorage.setItem("muted", f ? "1" : "0");
   const readBGM = () => sessionStorage.getItem("bgm") === "1";
-  const writeBGM = (flag) => sessionStorage.setItem("bgm", flag ? "1" : "0");
+  const writeBGM = (f) => sessionStorage.setItem("bgm", f ? "1" : "0");
 
-  // Sync buttons on load
   (() => {
     const m = readMuted();
     try {
@@ -184,12 +156,11 @@
   function withLoadError(howl, name) {
     try {
       howl.on("loaderror", (id, err) =>
-        console.warn(`[audio] loaderror: ${name}`, err)
+        console.warn("[audio] loaderror:", name, err)
       );
     } catch {}
     return howl;
   }
-
   const audio = {
     ready: false,
     muted: readMuted(),
@@ -208,18 +179,10 @@
             Howler.ctx.resume();
           } catch {}
         }
-        const codecs = {
-          ogg: !!Howler.codecs?.("ogg"),
-          mp3: !!Howler.codecs?.("mp3"),
-        };
-        const src = (name) => {
-          const list = [];
-          if (codecs.ogg) list.push(`${AUDIO_BASE}${name}.ogg`);
-          if (codecs.mp3) list.push(`${AUDIO_BASE}${name}.mp3`);
-          if (!list.length) list.push(`${AUDIO_BASE}${name}.mp3`);
-          return list;
-        };
-
+        const src = (name) => [
+          `${AUDIO_BASE}${name}.mp3`,
+          `${AUDIO_BASE}${name}.ogg`,
+        ];
         this.sfx.confirm = withLoadError(
           new Howl({ src: src("confirm"), volume: 0.9, preload: true }),
           "confirm"
@@ -240,30 +203,26 @@
           new Howl({ src: src("type"), volume: 0.5, preload: true }),
           "type"
         );
-
         this.bgmHowl = withLoadError(
           new Howl({
             src: src("bgm"),
             loop: true,
             volume: 0.25,
             preload: true,
+            html5: true,
           }),
           "bgm"
         );
-
         try {
           Howler.mute(this.muted);
         } catch {}
         btnMute.textContent = this.muted ? "🔇" : "🔊";
-
-        // Autoplay BGM according to saved pref (after gesture unlock)
         if (readBGM() && !this.muted) this.bgmHowl?.play();
-
         this.ready = true;
       } catch {}
     },
-    play(name) {
-      if (this.ready && !this.muted) this.sfx[name]?.play();
+    play(n) {
+      if (this.ready && !this.muted) this.sfx[n]?.play();
     },
     toggleMute(force) {
       this.muted = typeof force === "boolean" ? force : !this.muted;
@@ -284,7 +243,7 @@
   };
 
   ["pointerdown", "touchstart", "keydown", "click"].forEach((ev) => {
-    window.addEventListener(
+    addEventListener(
       ev,
       (e) => {
         if (ev === "keydown" && !(e.key === " " || e.key === "Enter")) return;
@@ -301,9 +260,7 @@
     writeBGM(next);
     if (next) {
       if (!audio.muted) audio.bgmOn();
-    } else {
-      audio.bgmOff();
-    }
+    } else audio.bgmOff();
   });
   document.addEventListener("visibilitychange", () => {
     try {
@@ -315,83 +272,62 @@
     }
   });
 
-  /* ---------- Haptics ---------- */
   const vibe = (ms) => navigator.vibrate && navigator.vibrate(ms);
 
-  // Atur durasi di sini (1–2 detik sesuai keinginan)
-  const IRIS_MS = matchMedia("(prefers-reduced-motion: reduce)").matches
-    ? 220
-    : 2500;
-  const TILES_MS = matchMedia("(prefers-reduced-motion: reduce)").matches
-    ? 220
-    : 1500;
+  /* ---------- Transitions (strict) ---------- */
+  const IRIS_MS = prefersReduced ? 220 : 1600;
+  const TILES_MS = prefersReduced ? 220 : 1400;
 
-  // === STRICT TRANSITIONS ===
-  // 1) Tiles: overlay ON (instan) → animasi tiles selama durasi penuh → swap scene → overlay OFF
-  // === STRICT Tiles Transition (tunggu sampai SEMUA tile selesai) ===
   function tilesTransition(cb) {
     if (!fxTiles) {
       cb?.();
       return;
     }
-
     const dur = TILES_MS;
-    fxTiles.style.setProperty("--tiles-dur", `${dur}ms`);
     fxTiles.style.setProperty("--dur", `${dur}ms`);
-
-    // Build tiles + hitung delay maksimum
     fxTiles.innerHTML = "";
-    const cols = 14,
-      rows = 10,
-      total = cols * rows;
-    let maxDelay = 0;
 
+    // Responsif: jumlah tile berdasarkan ukuran root
+    const W = root.clientWidth || innerWidth;
+    const H = root.clientHeight || innerHeight;
+    const cols = Math.max(10, Math.round(W / 80));
+    const rows = Math.max(8, Math.round(H / 80));
+    fxTiles.style.gridTemplateColumns = `repeat(${cols},1fr)`;
+    const total = cols * rows;
+
+    let maxDelay = 0;
     for (let i = 0; i < total; i++) {
       const t = document.createElement("i");
-      const delay = ((i % cols) + Math.floor(i / cols)) * (dur / total);
+      const delay = ((i % cols) + Math.floor(i / cols)) * (dur / total); // wave diagonal
       if (delay > maxDelay) maxDelay = delay;
-
-      // pastikan semua selesai di (delay + dur)
       t.style.animationDelay = `${delay}ms`;
       t.style.animationDuration = `${dur}ms`;
       fxTiles.appendChild(t);
     }
 
-    // Overlay ON instan (tanpa jeda blank)
     const prev = fxTiles.style.transition;
     fxTiles.style.transition = "none";
     fxTiles.classList.remove("active");
-    void fxTiles.offsetWidth; // reflow
-    fxTiles.classList.add("active"); // tampilkan overlay langsung
+    void fxTiles.offsetWidth;
+    fxTiles.classList.add("active");
     void fxTiles.offsetWidth;
     fxTiles.style.transition = prev;
-
-    // Tunggu sampai SEMUA tile selesai (delay max + dur)
-    const totalClose = Math.ceil(maxDelay + dur);
 
     setTimeout(() => {
       try {
         cb?.();
       } catch {}
-
-      // Lepas overlay pada frame berikutnya (reveal scene baru)
-      requestAnimationFrame(() => {
-        fxTiles.classList.remove("active");
-      });
-    }, totalClose);
+      requestAnimationFrame(() => fxTiles.classList.remove("active"));
+    }, Math.ceil(maxDelay + dur));
   }
-  // 2) Iris: overlay ON (instan) → animasi iris selama durasi penuh → swap scene → overlay OFF
+
   function irisTransition(cb) {
     if (!fxIris) {
       cb?.();
       return;
     }
-
     const dur = IRIS_MS;
     fxIris.style.setProperty("--iris-dur", `${dur}ms`);
-    fxIris.style.setProperty("--dur", `${dur}ms`);
-
-    // Overlay ON secara instan (tanpa jeda)
     const prev = fxIris.style.transition;
     fxIris.style.transition = "none";
     fxIris.classList.remove("active");
@@ -399,16 +335,11 @@
     fxIris.classList.add("active");
     void fxIris.offsetWidth;
     fxIris.style.transition = prev;
-
-    // Tunggu durasi penuh, baru swap & reveal
     setTimeout(() => {
       try {
         cb?.();
       } catch {}
-
-      requestAnimationFrame(() => {
-        fxIris.classList.remove("active");
-      });
+      requestAnimationFrame(() => fxIris.classList.remove("active"));
     }, dur);
   }
 
@@ -428,128 +359,104 @@
       "Gift",
       "Outro",
     ],
-
-    // internal flags
     _started: false,
     _isTransitioning: false,
 
     setScene(name, effect = "auto") {
-      // cegah re-entrant / spam klik
       if (this._isTransitioning) return;
-      // kalau sama, nggak usah transisi
       if (name === this.currentName) return;
 
-      // pilih efek secara otomatis
       const pick = (() => {
-        if (prefersReduced) return "none"; // hormati preferensi aksesibilitas
-        if (!this._started) return "iris"; // pertama kali: iris
-        // override manual kalau kamu pakai "iris"/"tiles"/"none"
+        if (prefersReduced) return "none";
+        if (!this._started) return "iris";
         if (effect === "iris" || effect === "tiles" || effect === "none")
           return effect;
-        return "tiles"; // sisanya default: tiles
+        return "tiles";
       })();
 
       const go = () => {
-        // masuk scene baru
         try {
-          if (this.current?.exit) this.current.exit();
+          this.current?.exit?.();
         } catch {}
-        layers.stage.replaceChildren(); // <-- kita pakai stage-layer; balon tetap ada
+        layers.stage.replaceChildren();
         this.current = this.scenes[name];
         this.currentName = name;
         const el = this.current.enter();
         layers.stage.appendChild(el);
-
-        // fokus elemen penting
         setTimeout(() => {
-          const h = layers.stage.querySelector("h1,h2,button,[tabindex]");
-          h?.focus?.({ preventScroll: true });
+          layers.stage
+            .querySelector("h1,h2,button,[tabindex]")
+            ?.focus?.({ preventScroll: true });
         }, 0);
-
         starCountEl.textContent = Math.min(8, this.progress.size).toString();
-
-        // selesaikan transisi
         this._isTransitioning = false;
         this._started = true;
       };
 
-      // jalankan transisinya
       this._isTransitioning = true;
       if (pick === "tiles") tilesTransition(go);
       else if (pick === "iris") irisTransition(go);
-      else go(); // "none"
+      else go();
     },
-
     completeCurrent() {
       if (this.currentName) this.progress.add(this.currentName);
       starCountEl.textContent = Math.min(8, this.progress.size).toString();
     },
-
     next() {
       const i = this.order.indexOf(this.currentName);
-      const next = this.order[i + 1] || "Outro";
-      // default effect = auto (→ tiles)
-      this.setScene(next);
+      this.setScene(this.order[i + 1] || "Outro");
     },
-
     prev() {
       const i = this.order.indexOf(this.currentName);
-      const prev = this.order[i - 1] || "Intro";
-      this.setScene(prev);
+      this.setScene(this.order[i - 1] || "Intro");
     },
   };
 
-  /* ---------- Unified typewriter ---------- */
-  /* ---------- Unified typewriter (with cursor class) ---------- */
+  /* ---------- Typewriter ---------- */
   function typeText(el, text, base = 46, done) {
     let i = 0,
       skipping = false,
       timer = 0;
     el.textContent = "";
     el.__typingActive = true;
-    el.classList.add("typing"); // <-- cursor ON
-
+    el.classList.add("typing");
     const skip = () => {
       if (!el.__typingActive) return;
       skipping = true;
       clearTimeout(timer);
       el.textContent = text;
       el.__typingActive = false;
-      el.classList.remove("typing"); // <-- cursor OFF
+      el.classList.remove("typing");
       el.removeEventListener("click", skip);
       el.removeEventListener("touchstart", skip);
-      if (typeof done === "function") done();
+      done?.();
     };
     el.addEventListener("click", skip, { passive: true });
     el.addEventListener("touchstart", skip, { passive: true });
-
     const tick = () => {
       if (skipping) return;
       const ch = text[i++];
       el.textContent += ch;
       if (i === 1) audio.play("type");
       if (i < text.length) {
-        let delay = base;
+        let d = base;
         const next3 = text.slice(i - 1, i + 2);
-        if (ch === "." || ch === "!" || ch === "?") delay += 260;
-        else if (ch === ",") delay += 140;
-        else if (ch === "—") delay += 180;
-        else if (ch === "…" || next3 === "...") delay += 300;
-        timer = setTimeout(tick, delay);
+        if (ch === "." || ch === "!" || ch === "?") d += 260;
+        else if (ch === ",") d += 140;
+        else if (ch === "—") d += 180;
+        else if (ch === "…" || next3 === "...") d += 300;
+        timer = setTimeout(tick, d);
       } else {
         el.__typingActive = false;
-        el.classList.remove("typing"); // <-- cursor OFF
+        el.classList.remove("typing");
         el.removeEventListener("click", skip);
         el.removeEventListener("touchstart", skip);
-        if (typeof done === "function") done();
+        done?.();
       }
     };
     tick();
   }
-
-  const INTRO_PAUSE = matchMedia("(prefers-reduced-motion: reduce)").matches
-    ? 120
-    : 650;
+  const INTRO_PAUSE = prefersReduced ? 120 : 650;
   function typeTitle(
     box,
     { subEl = null, titleSpeed = 58, subSpeed = 46, pause = INTRO_PAUSE } = {}
@@ -585,111 +492,49 @@
     });
   }
 
-  function typeQuizOptions(
-    listEl,
-    {
-      badgeSpeed = 40, // kecepatan huruf A/B/C/D
-      textSpeed = 46, // kecepatan teks jawaban
-      gapBetween = 160, // jeda antar opsi
-      afterBadgeGap = 120, // jeda kecil antara badge -> teks
-    } = {}
-  ) {
-    const rows = [...listEl.querySelectorAll("li")];
-
-    let i = 0;
-    const playRow = () => {
-      if (i >= rows.length) return;
-      const btn = rows[i].querySelector(".opt");
-      const badge = btn.querySelector(".badge");
-      const label = btn.querySelector("span:last-child");
-
-      // simpan isi asli, lalu kosongkan untuk animasi
-      const badgeTxt = badge.textContent;
-      const labelTxt = label.textContent;
-      badge.textContent = "";
-      label.textContent = "";
-
-      // ketik badge (A/B/C/D) dulu, lalu teksnya
-      typeText(badge, badgeTxt, badgeSpeed, () => {
-        setTimeout(() => {
-          typeText(label, labelTxt, textSpeed, () => {
-            i++;
-            setTimeout(playRow, gapBetween);
-          });
-        }, afterBadgeGap);
-      });
-    };
-
-    playRow();
-  }
-
-  // === Drop-in helpers (letakkan bersama helper lain) ===
-  function sleep(ms) {
-    return new Promise((r) => setTimeout(r, ms));
-  }
-
-  function typeInto(el, text, speed = 42) {
-    return new Promise((resolve) => {
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const typeInto = (el, text, speed = 42) =>
+    new Promise((res) => {
       el.textContent = "";
       let i = 0;
       const tick = () => {
         if (i === 0) audio.play("type");
         el.textContent += text[i++];
         if (i < text.length) setTimeout(tick, speed);
-        else resolve();
+        else res();
       };
       tick();
     });
-  }
 
-  /**
-   * Animasi opsi quiz satu per satu:
-   * - Sembunyikan semua <li> dulu
-   * - Untuk tiap <li>: ketik badge (A/B/C/D), jeda, ketik label teks
-   * - Setelah selesai, baru lanjut ke item berikutnya
-   */
   async function typeQuizOptions(
     list,
     {
       badgeSpeed = 40,
       textSpeed = 46,
-      gapBetween = 160, // jeda antar opsi
-      afterBadgeGap = 120, // jeda antara badge dan label
+      gapBetween = 160,
+      afterBadgeGap = 120,
     } = {}
   ) {
     const items = [...list.querySelectorAll("li")];
-
-    // Lock & hide semuanya dulu
     items.forEach((li) => {
       li.style.opacity = "0";
       li.style.pointerEvents = "none";
-      li.inert = true; // guard a11y/klik
+      li.inert = true;
     });
-
-    // Jalankan sequential
     for (const li of items) {
-      const btn = li.querySelector(".opt");
-      const badge = btn.querySelector(".badge");
-      const label = btn.querySelector("span:last-child"); // label teks
-
-      // Simpan konten lalu kosongkan untuk ditulis ulang
-      const badgeText = badge.textContent;
-      const labelText = label.textContent;
+      const btn = li.querySelector(".opt"),
+        badge = btn.querySelector(".badge"),
+        label = btn.querySelector("span:last-child");
+      const b = badge.textContent,
+        t = label.textContent;
       badge.textContent = "";
       label.textContent = "";
-
-      // Tampilkan item yang lagi dianimasikan
       li.style.opacity = "1";
-
-      await typeInto(badge, badgeText, badgeSpeed);
+      await typeInto(badge, b, badgeSpeed);
       await sleep(afterBadgeGap);
-      await typeInto(label, labelText, textSpeed);
-
-      // Unlock item ini setelah selesai animasi
+      await typeInto(label, t, textSpeed);
       li.style.pointerEvents = "";
       li.inert = false;
-
-      // Jeda sebelum lanjut ke item berikutnya
       await sleep(gapBetween);
     }
   }
@@ -726,7 +571,7 @@
     },
   };
 
-  /* ---------- SCENE: Intro ---------- */
+  /* ---------- Scenes ---------- */
   game.scenes.Intro = {
     enter() {
       const box = ui.box("Happy Birthday, Natasya!");
@@ -734,14 +579,12 @@
       const sub = ui.p("Tap A to begin your pastel 8-bit quest 💗");
       box.appendChild(sub);
 
-      // typewriter kamu yang sekarang — tetap
       const h = box.querySelector("h1");
-      const titleText = h.textContent;
-      const subText = sub.textContent;
+      const titleText = h.textContent,
+        subText = sub.textContent;
       h.textContent = "";
       sub.textContent = "";
       h.classList.add("typing");
-      const INTRO_PAUSE = 650;
       typeText(h, titleText, 58, () => {
         h.classList.remove("typing");
         setTimeout(() => {
@@ -750,7 +593,6 @@
         }, INTRO_PAUSE);
       });
 
-      // Kembalikan hanya box (konten), karena balon sudah global
       const wrap = document.createElement("div");
       wrap.append(box);
       return wrap;
@@ -765,7 +607,6 @@
     onB() {},
   };
 
-  /* ---------- SCENE: Quiz ---------- */
   const QUIZ = [
     {
       q: "“When we celebrate a win, what do we reach for first?”",
@@ -798,6 +639,7 @@
       praise: "Seaside sunsets, coming right up 🌅",
     },
   ];
+
   game.scenes.Quiz = {
     idx: 0,
     _onClick: null,
@@ -805,17 +647,13 @@
       const box = ui.box("Quiz Time!");
       const wrap = document.createElement("div");
       wrap.className = "quiz";
-
-      // Elemen pertanyaan
       const q = ui.p(QUIZ[this.idx].q);
       wrap.appendChild(q);
 
-      // Siapkan UL dan LI, tapi JANGAN append ke DOM dulu
       const list = document.createElement("ul");
       list.setAttribute("role", "list");
       const letters = ["A", "B", "C", "D"];
       const frag = document.createDocumentFragment();
-
       QUIZ[this.idx].a.forEach((txt, k) => {
         const li = document.createElement("li");
         const btn = document.createElement("button");
@@ -827,21 +665,13 @@
         frag.appendChild(li);
       });
       list.appendChild(frag);
-
-      // Render box & pertanyaan dulu
       box.appendChild(wrap);
 
-      // Ketik judul + pertanyaan… opsi BELUM ada di DOM, jadi tidak mungkin tampil
-      // Ketik judul + pertanyaan… opsi BELUM ada di DOM
       typeTitle(box, { subEl: q, titleSpeed: 54, subSpeed: 46 }).then(() => {
-        // Setelah selesai: baru masukkan UL
         wrap.appendChild(list);
-
-        // Pastikan belum kelihatan sebelum animasi mulai
         list.style.visibility = "hidden";
         requestAnimationFrame(() => {
           list.style.visibility = "";
-          // ⬇️ animasi A → B → C → D, sequential
           typeQuizOptions(list, {
             badgeSpeed: 40,
             textSpeed: 46,
@@ -850,7 +680,6 @@
           });
         });
       });
-
       return box;
     },
     enter() {
@@ -858,47 +687,33 @@
       const el = this.build();
       this._onClick = (e) => {
         const btn = e.target.closest?.(".opt");
-        if (!btn || this.locked) return; // ⬅️ guard dobel klik
+        if (!btn || this.locked) return;
         const k = Number(btn.dataset.index);
-
         if (k === 0) {
-          this.locked = true; // ⬅️ lock sampai transisi selesai
-          const praise =
-            QUIZ[this.idx]?.praise || // ⬅️ snapshot biar gak jadi undefined
-            "Nice!"; //    fallback aman
-
+          this.locked = true;
+          const praise = QUIZ[this.idx]?.praise || "Nice!";
           audio.play("confirm");
           vibe(10);
-
-          // mark & matikan semua opsi biar ga retrigger
-          const opts = $$(".opt", root);
-          opts.forEach((o) => {
+          $$(".opt", root).forEach((o) => {
             o.disabled = true;
             o.inert = true;
             o.classList.toggle("correct", o === btn);
             o.classList.remove("wrong");
           });
-
-          // ganti isi kartu jadi dialog pujian
-          const card = $(".ui-box", root);
-          const title = $(".ui-box h1", root);
+          const card = $(".ui-box", root),
+            title = $(".ui-box h1", root);
           const d = document.createElement("div");
           d.className = "dialog praise";
           const p = document.createElement("div");
           d.appendChild(p);
           card.replaceChildren(title, d);
-
-          // ketik pujian -> lanjut next/finish
           typeText(p, praise, 46, () => {
             setTimeout(() => {
               this.idx++;
               this.locked = false;
-
               if (this.idx < QUIZ.length) {
-                // render pertanyaan berikutnya (opsi juga akan dianimasikan sequential)
                 card.replaceWith(this.build());
               } else {
-                // layar "Nice!" final tanpa undefined
                 const finCard = ui.box("Nice!");
                 const fin = document.createElement("div");
                 fin.className = "dialog praise";
@@ -906,7 +721,6 @@
                 fin.appendChild(sub);
                 finCard.appendChild(fin);
                 layers.stage.replaceChildren(finCard);
-
                 typeText(
                   sub,
                   "You did it! Let’s pop some balloons…",
@@ -931,7 +745,6 @@
           setTimeout(() => btn.classList.remove("wrong"), 360);
         }
       };
-
       root.addEventListener("click", this._onClick);
       return el;
     },
@@ -949,7 +762,7 @@
     },
   };
 
-  /* ---------- SCENE: Balloons ---------- */
+  /* BALLOONS */
   const BALLOON_MSGS = [
     "Aku suka caramu menenangkan aku.",
     "Terima kasih sudah sabar sama kekuranganku.",
@@ -960,14 +773,9 @@
     "You deserve all the gentle things.",
     "Aku selalu dukung kamu.",
   ];
-  function balloonSVG(color) {
-    return `
-      <svg class="balloon-svg" viewBox="0 0 80 110" aria-hidden="true">
-        <ellipse cx="40" cy="40" rx="26" ry="32" fill="${color}" stroke="#ff9bb0" stroke-width="3"/>
-        <path d="M40 68 L36 74 L44 74 Z" fill="${color}"/>
-        <path d="M40 74 C 40 90, 46 96, 40 110" stroke="#caa" stroke-width="2" fill="none"/>
-      </svg>`;
-  }
+  const balloonSVG = (c) =>
+    `<svg class="balloon-svg" viewBox="0 0 80 110" aria-hidden="true"><ellipse cx="40" cy="40" rx="26" ry="32" fill="${c}" stroke="#ff9bb0" stroke-width="3"/><path d="M40 68 L36 74 L44 74 Z" fill="${c}"/><path d="M40 74 C 40 90, 46 96, 40 110" stroke="#caa" stroke-width="2" fill="none"/></svg>`;
+
   game.scenes.Balloons = {
     popped: 0,
     listeners: [],
@@ -978,7 +786,6 @@
       const box = ui.box("Pop the Balloons!");
       const hint = ui.p("Tap balloons to reveal messages 💬");
       box.appendChild(hint);
-
       box.style.height = "100%";
       box.style.display = "flex";
       box.style.flexDirection = "column";
@@ -1021,13 +828,14 @@
       const layout = () => {
         const cols = root.clientWidth >= 520 ? 4 : 2;
         grid.style.setProperty("--cols", cols);
-        const gap = 10;
+        const gap = parseFloat(getComputedStyle(grid).gap) || 10;
         const rows = Math.ceil(BALLOON_MSGS.length / cols);
         const availW = grid.clientWidth - gap * (cols - 1);
-        const tileByW = Math.floor(availW / cols);
         const availH = grid.clientHeight - gap * (rows - 1);
-        const tileByH = Math.floor(availH / rows);
-        const tile = Math.max(56, Math.min(tileByW, tileByH));
+        const tile = Math.max(
+          56,
+          Math.min(Math.floor(availW / cols), Math.floor(availH / rows))
+        );
         grid.style.setProperty("--tile", tile + "px");
       };
       this.ro = new ResizeObserver(layout);
@@ -1036,9 +844,7 @@
       addEventListener("resize", this.onResize, { passive: true });
       setTimeout(layout, 0);
 
-      // unified typing
       typeTitle(box, { subEl: hint, titleSpeed: 54, subSpeed: 46 });
-
       return box;
     },
     exit() {
@@ -1059,7 +865,7 @@
     },
   };
 
-  /* ---------- SCENE: Candle ---------- */
+  /* CANDLE */
   game.scenes.Candle = {
     holding: false,
     raf: 0,
@@ -1072,21 +878,15 @@
       const sub = ui.p("Hold the button to blow the candle.");
       sub.style.textAlign = "center";
       sub.style.opacity = ".75";
+      sub.style.marginBottom = "clamp(10px, 2.5vmin, 18px)"; // <— jarak ke cake
       box.appendChild(sub);
-
       const cake = document.createElement("div");
       cake.className = "cake";
-      cake.innerHTML = `
-        <div class="cake-visual">
-          <div class="flame" id="flame"></div>
-          <div class="wick"></div>
-          <div class="candle"></div>
-          <div class="cake-body"></div>
-          <div class="cake-plate"></div>
+      cake.innerHTML = `<div class="cake-visual">
+          <div class="flame" id="flame"></div><div class="wick"></div><div class="candle"></div><div class="cake-body"></div><div class="cake-plate"></div>
         </div>
         <button class="hold" id="hold">Press & Hold</button>
-        <div class="progress"><i id="bar"></i></div>
-      `;
+        <div class="progress"><i id="bar"></i></div>`;
       box.appendChild(cake);
       this.holdEl = $("#hold", cake);
       this.barEl = $("#bar", cake);
@@ -1128,9 +928,7 @@
       this.holdEl.addEventListener("pointerup", stop);
       this.holdEl.addEventListener("pointerleave", stop);
 
-      // unified typing
       typeTitle(box, { subEl: sub, titleSpeed: 54, subSpeed: 46 });
-
       return box;
     },
     exit() {
@@ -1143,7 +941,7 @@
     },
   };
 
-  /* ---------- SCENE: Memories — 8-bit Slideshow ---------- */
+  /* MEMORIES — 8-bit slideshow */
   game.scenes.Memories = {
     idx: 0,
     imgs: [
@@ -1156,7 +954,6 @@
       "https://picsum.photos/seed/pastel7/800/600",
       "https://picsum.photos/seed/pastel8/800/600",
     ],
-
     enter() {
       const box = ui.box("Memories");
       const sub = ui.p("Swipe ◀ ▶ or tap the arrows");
@@ -1164,23 +961,14 @@
       sub.style.opacity = ".75";
       box.appendChild(sub);
 
-      // Stage + nav + dots (8-bit style)
       const wrap = document.createElement("div");
       wrap.className = "ss-wrap";
-      wrap.innerHTML = `
-      <div class="ss-stage pixel-border">
-        <img alt="Memory"/>
-        <button class="ss-nav prev" aria-label="Previous">◀</button>
-        <button class="ss-nav next" aria-label="Next">▶</button>
-      </div>
-      <div class="ss-dots" role="tablist" aria-label="Slides"></div>
-    `;
-
-      const stage = wrap.querySelector(".ss-stage");
-      const img = wrap.querySelector("img");
-      const prevBtn = wrap.querySelector(".prev");
-      const nextBtn = wrap.querySelector(".next");
-      const dots = wrap.querySelector(".ss-dots");
+      wrap.innerHTML = `<div class="ss-stage pixel-border"><img alt="Memory"/><button class="ss-nav prev" aria-label="Previous">◀</button><button class="ss-nav next" aria-label="Next">▶</button></div><div class="ss-dots" role="tablist" aria-label="Slides"></div>`;
+      const stage = $(".ss-stage", wrap),
+        img = $("img", wrap),
+        prevBtn = $(".prev", wrap),
+        nextBtn = $(".next", wrap),
+        dots = $(".ss-dots", wrap);
 
       const makeDots = () => {
         dots.innerHTML = "";
@@ -1193,7 +981,6 @@
           dots.appendChild(b);
         }
       };
-
       this.update = () => {
         img.src = this.imgs[this.idx];
         img.onerror = () => (img.src = "https://picsum.photos/800/600?blur=1");
@@ -1201,17 +988,15 @@
           d.setAttribute("aria-selected", String(i === this.idx))
         );
       };
-
       this.go = (i) => {
         const n = this.imgs.length;
         this.idx = ((i % n) + n) % n;
         this.update();
       };
-
       prevBtn.addEventListener("click", () => this.go(this.idx - 1));
       nextBtn.addEventListener("click", () => this.go(this.idx + 1));
 
-      // Swipe/drag
+      // swipe
       let x0 = 0,
         dx = 0,
         sw = false;
@@ -1227,9 +1012,8 @@
       const end = () => {
         if (!sw) return;
         sw = false;
-        if (Math.abs(dx) > stage.clientWidth * 0.18) {
+        if (Math.abs(dx) > stage.clientWidth * 0.18)
           this.go(this.idx + (dx > 0 ? -1 : 1));
-        }
         dx = 0;
       };
       stage.addEventListener("pointerdown", start);
@@ -1241,26 +1025,17 @@
       stage.addEventListener("touchend", end);
 
       box.appendChild(wrap);
-
-      // typewriter judul → sub
       typeTitle(box, { subEl: sub, titleSpeed: 54, subSpeed: 46 });
 
-      // inisialisasi
       this.idx = 0;
       makeDots();
       this.update();
 
-      // hint A untuk lanjut
       const aHint = ui.hint("Tap A to continue");
       box.appendChild(aHint);
-
       return box;
     },
-
-    exit() {
-      // semua listener terikat ke elemen lokal; akan GC saat scene diganti
-    },
-
+    exit() {},
     onA() {
       game.completeCurrent();
       confettiBurst("mini");
@@ -1271,22 +1046,18 @@
     },
   };
 
-  /* ---------- SCENE: Message ---------- */
+  /* MESSAGE — reveal hint after finished typing */
   const MSG = [
     "Another year, another chance to tell you how wildly treasured you are.",
     "You chase your dreams with a brave heart and still make space for softness.",
     "Here’s to more laughter, more adventures, and more love around our days.",
   ];
-  /* ---------- SCENE: Message (reveal note after all typed) ---------- */
   game.scenes.Message = {
     box: null,
     content: null,
     index: 0,
-
     enter() {
       this.index = 0;
-
-      // header
       const head = document.createElement("div");
       head.className = "ui-box";
       const h = document.createElement("h2");
@@ -1296,7 +1067,6 @@
       sub.style.opacity = ".75";
       head.append(h, sub);
 
-      // container
       const wrap = document.createElement("div");
       wrap.className = "msg-wrap";
       this.box = document.createElement("div");
@@ -1306,18 +1076,16 @@
       this.box.appendChild(this.content);
       wrap.append(head, this.box);
 
-      // NOTE: disembunyikan dulu
       const note = ui.p("Tap A to continue");
       note.style.textAlign = "center";
-      note.style.opacity = "0"; // <-- hidden
+      note.style.opacity = "0";
       note.style.transition = "opacity .25s linear";
       wrap.appendChild(note);
 
-      // helper: ketik semua paragraf berurutan → Promise
       const typeAll = () =>
-        new Promise((resolve) => {
+        new Promise((res) => {
           const step = () => {
-            if (this.index >= MSG.length) return resolve();
+            if (this.index >= MSG.length) return res();
             const p = document.createElement("p");
             this.content.appendChild(p);
             typeText(p, MSG[this.index++], 46, () => setTimeout(step, 180));
@@ -1325,17 +1093,14 @@
           step();
         });
 
-      // jalankan: title → sub → semua paragraf → reveal note
       typeTitle(head, { subEl: sub, titleSpeed: 54, subSpeed: 46 }).then(
         async () => {
           await typeAll();
-          requestAnimationFrame(() => (note.style.opacity = "1")); // <-- reveal
+          requestAnimationFrame(() => (note.style.opacity = "1"));
         }
       );
-
       return wrap;
     },
-
     exit() {},
     onA() {
       confettiBurst("mini");
@@ -1347,7 +1112,7 @@
     },
   };
 
-  /* ---------- SCENE: Gift ---------- */
+  /* GIFT */
   game.scenes.Gift = {
     enter() {
       const box = ui.box("A little gift");
@@ -1355,12 +1120,11 @@
       sub.style.textAlign = "center";
       sub.style.opacity = ".75";
       box.appendChild(sub);
-
       const frame = document.createElement("div");
       frame.className = "ui-box";
       frame.style.display = "grid";
       frame.style.placeItems = "center";
-      frame.style.width = "min(420px, 90%)";
+      frame.style.width = "min(420px,90%)";
       frame.style.aspectRatio = "3/2";
       frame.style.background = "var(--color-2)";
       const img = new Image();
@@ -1372,7 +1136,6 @@
       img.style.maxWidth = "100%";
       img.style.maxHeight = "100%";
       frame.appendChild(img);
-
       const row = document.createElement("div");
       row.style.display = "flex";
       row.style.justifyContent = "center";
@@ -1380,14 +1143,17 @@
       row.style.marginTop = "10px";
       const btnSave = ui.btn("Download PNG");
       const btnGo = ui.btn("Grand Finale →");
-
       btnSave.addEventListener("click", () => {
-        const a = document.createElement("a");
-        a.href = img.src;
-        a.download = "for-natasya.png";
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
+        // Buka gambar di tab baru; user bisa Save As dari browser
+        const w = window.open(img.src, "_blank", "noopener,noreferrer");
+        if (!w) {
+          // Fallback kalau popup diblokir
+          const a = document.createElement("a");
+          a.href = img.src;
+          a.target = "_blank";
+          a.rel = "noopener";
+          a.click();
+        }
       });
       btnGo.addEventListener("click", () => {
         confettiBurst("finale");
@@ -1395,13 +1161,9 @@
         game.completeCurrent();
         setTimeout(() => game.setScene("Outro"), 700);
       });
-
       row.append(btnSave, btnGo);
       box.append(frame, row);
-
-      // unified typing
       typeTitle(box, { subEl: sub, titleSpeed: 54, subSpeed: 46 });
-
       return box;
     },
     exit() {},
@@ -1414,27 +1176,34 @@
     },
   };
 
-  /* ---------- SCENE: Outro ---------- */
+  /* OUTRO */
   game.scenes.Outro = {
     enter() {
       const box = document.createElement("div");
       box.className = "ui-box center";
+
       const h = document.createElement("h2");
       h.textContent = "Happy Birthday, Natasya! 💖";
+
       const p = ui.p(
         "May your days be soft, brave, and full of tiny victories."
       );
+
       const btn = ui.btn("Restart");
+      btn.classList.add("outro-btn"); // <- hidden + gap
       btn.addEventListener("click", () => {
         game.progress.clear();
         starCountEl.textContent = "0";
         confettiBurst("mini");
-        game.setScene("Intro");
+        game.setScene("Intro"); // opening pakai iris auto
       });
+
       box.append(h, p, btn);
 
-      // unified typing
-      typeTitle(box, { subEl: p, titleSpeed: 54, subSpeed: 46 });
+      // Ketik judul -> paragraf, lalu REVEAL tombol
+      typeTitle(box, { subEl: p, titleSpeed: 54, subSpeed: 46 }).then(() => {
+        requestAnimationFrame(() => btn.classList.add("show")); // muncul setelah selesai
+      });
 
       return box;
     },
@@ -1443,11 +1212,11 @@
       game.setScene("Intro", "iris");
     },
     onB() {
-      game.setScene("Gift");
+      game.setScene("Gift", "tiles");
     },
   };
 
-  /* ---------- Controls (A/B) ---------- */
+  /* Controls */
   btnA.addEventListener("click", () => {
     audio.play("confirm");
     game.current?.onA?.();
@@ -1457,7 +1226,7 @@
     game.current?.onB?.();
   });
 
-  /* ---------- Init ---------- */
-  ensureBalloonsLayer(); // kalau layer balonmu dipasang manual
+  /* Init */
+  ensureBalloonsLayer();
   game.setScene("Intro", "iris");
 })();

@@ -1,5 +1,4 @@
-﻿<!-- index.html -->
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -7,15 +6,16 @@
       name="viewport"
       content="width=device-width, initial-scale=1, viewport-fit=cover"
     />
+    <meta name="format-detection" content="telephone=no,email=no,address=no" />
     <title>Natasya — 8-bit Birthday Quest</title>
 
-    <!-- Data-URL favicon (no 404 on GitHub Pages) -->
+    <!-- favicon data-url -->
     <link
       rel="icon"
       href="data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjZmY4YmE3IiB2aWV3Qm94PSIwIDAgMTYgMTYiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjE2IiBoZWlnaHQ9IjE2IiBmaWxsPSIjZmZkMWQxIi8+PHBhdGggZD0iTTggMTQgTDMgOSA5IDUgMTMgOSA4IDE0eiIgZmlsbD0iI2ZmOGJhNyIvPjwvc3ZnPg=="
     />
 
-    <!-- 8-bit font (global, used for ALL UI) -->
+    <!-- 8-bit font -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -23,25 +23,19 @@
       rel="stylesheet"
     />
 
-    <!-- Styles -->
     <link rel="stylesheet" href="./style.css" />
 
-    <!-- Libraries (HTTPS CDN) -->
-    <script
-      src="https://cdnjs.cloudflare.com/ajax/libs/canvas-confetti/1.9.3/confetti.browser.min.js"
-      defer
-    ></script>
-    <script
-      src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.min.js"
-      defer
-    ></script>
+    <!-- cdn libs -->
     <script
       defer
       src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"
     ></script>
+    <script
+      defer
+      src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.min.js"
+    ></script>
 
-    <!-- App -->
-    <script src="./app.js" defer></script>
+    <script defer src="./app.js"></script>
   </head>
   <body>
     <div
@@ -72,13 +66,11 @@
           >
             ♫
           </button>
-          <span class="stars" aria-live="polite"
-            >⭐ <b id="starCount">0</b>/8</span
-          >
+          <span class="stars">⭐ <b id="starCount">0</b>/8</span>
         </div>
       </header>
 
-      <!-- Scene card -->
+      <!-- SCENE -->
       <main
         id="scene-root"
         class="card pixel-border"
@@ -86,12 +78,11 @@
         aria-live="polite"
         aria-atomic="true"
       >
-        <!-- Transitions -->
         <div id="fx-iris" class="fx-iris"></div>
         <div id="fx-tiles" class="fx-tiles"></div>
       </main>
 
-      <!-- Status bar (touch-only controls) -->
+      <!-- FOOTER -->
       <footer class="statusbar pixel-border">
         <div class="hint-min" role="group" aria-label="Controls hint">
           <span class="hitem"><b>A</b><span>Confirm</span></span>
@@ -116,7 +107,6 @@
         </div>
       </footer>
 
-      <!-- Confetti canvas -->
       <canvas id="confetti-canvas"></canvas>
     </div>
   </body>

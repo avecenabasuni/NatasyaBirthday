@@ -1,63 +1,52 @@
 ﻿/* ================================
-   style.css — FINAL
+   style.css — FINAL RESPONSIVE
    ================================ */
 :root {
-  /* Palette (surfaces/cards/buttons) — DO NOT CHANGE */
   --color-1: #fff5e4;
   --color-2: #ffe3e1;
   --color-3: #ffd1d1;
   --color-4: #ff8ba7;
-
-  /* Accents (tiny details only) */
-  --accent-1: #ffd54f; /* candle flame */
-  --accent-2: #9ad1ff; /* focus ring/confetti */
+  --accent-1: #ffd54f;
+  --accent-2: #9ad1ff;
   --accent-3: #b9ffb3;
 
-  /* 8-bit baseline */
   --font-ui: "Press Start 2P", system-ui, sans-serif;
   --px: 2px;
 
-  /* Sizing & responsiveness */
   --vh: 100;
-  --space: clamp(8px, 2.5vw, 16px);
+  --space: clamp(8px, 2.2vw, 16px);
   --fs-xs: clamp(8px, 1.8vw, 12px);
-  --fs-sm: clamp(10px, 2.2vw, 14px);
-  --fs-md: clamp(12px, 2.6vw, 16px);
-  --fs-lg: clamp(14px, 3.2vw, 22px);
+  --fs-sm: clamp(10px, 2.1vw, 14px);
+  --fs-md: clamp(12px, 2.4vw, 16px);
+  --fs-lg: clamp(14px, 3vw, 22px);
 
-  /* Kontainer & kartu lebih lebar di desktop */
-  --container-max: 1100px;
-  --card-w: clamp(320px, 92vw, 840px);
+  --container-max: 1200px;
+  --card-w: clamp(320px, 92vw, 900px);
 
-  /* Quiz type scale */
-  --fs-quiz-title: clamp(14px, 3.2vw, 22px);
+  --fs-quiz-title: clamp(14px, 3vw, 22px);
   --fs-quiz-q: clamp(12px, 2.4vw, 18px);
   --fs-quiz-opt: clamp(11px, 2.2vw, 16px);
   --fs-quiz-badge: clamp(12px, 2.4vw, 16px);
 
   --pad-opt-y: clamp(8px, 1.6vh, 12px);
   --pad-opt-x: clamp(10px, 3.2vw, 16px);
-
-  --dur: 0.52s; /* transitions */
 }
 
 html,
 body {
   height: 100%;
   margin: 0;
-  overflow: hidden; /* lock page scroll */
+  overflow: hidden;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
 }
-
 *,
-*::before,
-*::after {
+*:before,
+*:after {
   box-sizing: border-box;
   font-family: var(--font-ui) !important;
   image-rendering: pixelated;
 }
-
 body {
   letter-spacing: 0.5px;
   line-height: 1.35;
@@ -65,16 +54,16 @@ body {
   color: #222;
   touch-action: manipulation;
 }
+a {
+  color: inherit;
+}
 
-/* Pixel border utility */
 .pixel-border {
   box-shadow: calc(var(--px) * 1) 0 0 0 #000, calc(var(--px) * -1) 0 0 0 #000,
     0 calc(var(--px) * 1) 0 0 #000, 0 calc(var(--px) * -1) 0 0 #000,
     0 0 0 calc(var(--px) * 2) var(--color-4);
-  border-radius: 0;
 }
 
-/* Typewriter caret */
 .typing::after {
   content: "▮";
   display: inline-block;
@@ -87,22 +76,22 @@ body {
   }
 }
 
-/* Focus ring (pixel) */
 :focus-visible {
   outline: calc(var(--px) * 2) solid var(--accent-2);
   outline-offset: 0;
 }
 
-/* Safe areas + layout */
+/* App layout */
 .screen {
-  height: calc(var(--vh) * 1px); /* iOS 100vh fix */
+  height: calc(var(--vh) * 1px);
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto; /* scene fleksibel */
+  grid-template-rows: auto minmax(0, 1fr) auto;
   gap: var(--space);
-  padding: calc(env(safe-area-inset-top) + var(--space)) var(--space)
-    calc(env(safe-area-inset-bottom) + var(--space));
-  align-items: stretch;
+  padding: calc(env(safe-area-inset-top)+var(--space)) var(--space)
+    calc(env(safe-area-inset-bottom)+var(--space));
   justify-items: center;
+  align-items: stretch;
+  overflow: hidden;
   background: radial-gradient(
       800px 500px at 10% -10%,
       var(--color-2) 0 35%,
@@ -110,14 +99,13 @@ body {
     ),
     radial-gradient(900px 600px at 110% 120%, var(--color-3) 0 35%, #0000 36%),
     var(--color-1);
-  overflow: hidden;
 }
 
-/* Lebarkan kontainer: desktop bisa >760px */
-#scene-root,
 .hud,
-.statusbar {
+.statusbar,
+#scene-root {
   width: min(100%, var(--container-max));
+  margin-inline: auto;
 }
 
 #scene-root {
@@ -134,7 +122,6 @@ body {
   width: 100%;
   height: 100%;
   pointer-events: none;
-  display: block;
   z-index: 50;
 }
 
@@ -147,68 +134,84 @@ body {
 
 /* HUD */
 .hud {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
-  justify-content: space-between;
+  gap: clamp(8px, 2vw, 16px);
   padding: 10px;
   background: var(--color-2);
+}
+.hud-left,
+.hud-right {
+  min-width: 0;
+}
+.hud-right {
+  display: flex;
+  align-items: center;
+  gap: clamp(6px, 2vw, 10px);
+  flex-wrap: nowrap; /* <-- jangan turun baris */
+  justify-content: flex-end;
+  white-space: nowrap; /* angka bintang tidak pecah */
 }
 .brand {
   font-size: var(--fs-sm);
 }
 .stars {
   display: inline-flex;
-  align-items: center;
   gap: 6px;
+  align-items: center;
   font-size: var(--fs-sm);
 }
-.chip {
-  background: var(--color-3);
-  border: 0;
-  padding: 10px 12px;
-  min-width: 44px;
-  min-height: 44px;
-  cursor: pointer;
-}
-
-/* tombol ikon (Mute & BGM) — sama persis */
 .icon-btn {
-  min-width: 44px;
-  min-height: 44px;
-  padding: 8px 10px;
+  min-width: 38px; /* kecilkan sedikit agar muat di ponsel kecil */
+  min-height: 38px;
+  padding: 6px 8px;
   background: var(--color-2);
   border: 0;
   box-shadow: 0 0 0 var(--px) var(--color-4) inset;
-  font-size: var(--fs-md);
+  font-size: clamp(12px, 2.6vw, 16px);
   line-height: 1;
+  flex: 0 0 auto; /* <-- jangan menyusut aneh-aneh */
+}
+.icon-btn[aria-pressed="true"] {
+  background: var(--color-3);
 }
 .icon-btn:focus-visible {
   outline: calc(var(--px) * 1) solid #000;
   box-shadow: 0 0 0 calc(var(--px) * 1) var(--color-4) inset,
     0 0 0 calc(var(--px) * 2) #000 inset;
 }
-.icon-btn[aria-pressed="true"] {
-  background: var(--color-3);
+
+@media (max-width: 520px) {
+  .hud {
+    grid-template-columns: auto 1fr auto;
+  } /* tetap 3 kolom */
+  .hud-left,
+  .hud-right {
+    width: auto;
+  }
+  /* optional: sembunyikan hint teks di tengah kalau ada */
+  .hud-hint {
+    display: none;
+  }
 }
 
-/* Status bar & controls */
-/* === HUD / FOOTER — 8-bit Game Boy style (drop-in) === */
+/* Footer / statusbar — borderless 8-bit */
 .statusbar {
-  /* penuh selebar container screen */
-  width: 100%;
-  max-width: none;
-  box-sizing: border-box;
-
   display: grid;
-  grid-template-columns: 1fr auto; /* hint | tombol */
+  grid-template-columns: 1fr auto; /* kiri fleksibel, kanan pas */
   align-items: center;
   gap: clamp(8px, 2vw, 16px);
-
   padding: clamp(6px, 1.6vh, 12px) clamp(10px, 3vw, 18px);
   background: var(--color-2);
+  box-sizing: border-box;
 }
-
-/* garis tipis “bezel” atas */
+.statusbar .hint-min {
+  min-width: 0; /* <-- penting */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap; /* tetap satu baris */
+}
 .statusbar::before {
   content: "";
   position: absolute;
@@ -219,37 +222,64 @@ body {
   background: rgba(0, 0, 0, 0.08);
   pointer-events: none;
 }
-
-.hint {
-  font-size: var(--fs-xs);
-  line-height: 1.25;
-  opacity: 0.9;
-  white-space: normal;
-  word-break: break-word;
+.btn-row {
+  display: flex;
+  gap: clamp(8px, 2vw, 14px);
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
-/* cluster tombol A/B */
+/* Borderless hint line */
+.hint-min {
+  --hint-a: 0.78;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: clamp(10px, 3vw, 18px);
+  font-size: clamp(10px, 1.9vw, 12px);
+  color: rgba(34, 34, 34, var(--hint-a));
+}
+.hint-min .hitem {
+  display: inline-flex;
+  align-items: center;
+  gap: clamp(6px, 1.6vw, 10px);
+  white-space: nowrap;
+}
+.hint-min .hitem b {
+  font-weight: 700;
+  color: #000;
+  text-shadow: 1px 0 rgba(0, 0, 0, 0.08), -1px 0 rgba(0, 0, 0, 0.08),
+    0 1px rgba(0, 0, 0, 0.08), 0 -1px rgba(0, 0, 0, 0.08);
+}
+.hint-min .hitem small {
+  margin-left: 4px;
+  opacity: 0.6;
+  font-size: 0.9em;
+}
+.hint-min .icon-swipe {
+  width: clamp(22px, 4vw, 28px);
+  height: clamp(10px, 2vw, 14px);
+}
+
 .controls {
   display: flex;
   align-items: center;
-  gap: clamp(8px, 2.4vw, 14px);
+  flex-wrap: nowrap; /* <-- jangan pernah turun baris */
+  gap: clamp(8px, 2.2vw, 14px);
 }
-
-/* tombol A/B: bulat ala Game Boy, tapi “pixel look” */
 .btn-a,
 .btn-b {
-  width: clamp(42px, 8vmin, 56px);
+  width: clamp(36px, 7.2vmin, 54px);
   aspect-ratio: 1 / 1;
-  padding: 0; /* bentuk bulat, tanpa padding variatif */
+  padding: 0;
   border-radius: 999px;
   background: var(--color-3);
   border: 0;
   cursor: pointer;
-  font-size: clamp(12px, 2.4vw, 16px);
+  font-size: clamp(11px, 2.2vw, 16px);
   box-shadow: 0 0 0 var(--px) var(--color-4) inset;
+  flex: 0 0 auto; /* jangan ikut menyusut aneh */
 }
-
-/* highlight kecil agar “plastik” */
 .btn-a::after,
 .btn-b::after {
   content: "";
@@ -263,85 +293,24 @@ body {
   filter: blur(0.5px);
   pointer-events: none;
 }
-
 .btn-a:active,
 .btn-b:active {
   transform: translateY(1px) scale(0.98);
   box-shadow: 0 0 0 var(--px) var(--color-4) inset,
-    0 0 0 calc(var(--px) * 1.5) #000, inset 0 0 0 9999px rgba(0, 0, 0, 0.04); /* ditekan */
+    0 0 0 calc(var(--px) * 1.5) #000, inset 0 0 0 9999px rgba(0, 0, 0, 0.04);
 }
-
 .btn-a:focus-visible,
 .btn-b:focus-visible {
   outline: calc(var(--px) * 2) solid var(--accent-2);
-  outline-offset: 0;
-}
-
-/* label tombol kalau mau kotak di belakangnya (opsional) */
-.controls::before {
-  content: "";
-  display: none;
-}
-
-/* Layout responsif: di layar sempit tombol turun ke bawah & center */
-@media (max-width: 420px) {
-  .statusbar {
-    grid-template-columns: 1fr;
-    justify-items: center;
-    text-align: center;
-  }
-  .controls {
-    justify-content: center;
-  }
-  .hint {
-    width: 100%;
-  }
-}
-
-/* ===== Minimal 8-bit hint (borderless) ===== */
-.hint-min {
-  --hint-alpha: 0.78;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: clamp(10px, 3vw, 18px);
-  padding: 0; /* borderless */
-  background: transparent;
-  color: rgba(34, 34, 34, var(--hint-alpha));
-  font-size: clamp(10px, 1.9vw, 12px);
-  line-height: 1.25;
-}
-
-.hint-min .hitem {
-  display: inline-flex;
-  align-items: center;
-  gap: clamp(6px, 1.6vw, 10px);
-  white-space: nowrap;
-}
-
-.hint-min .hitem b {
-  font-weight: 700;
-  letter-spacing: 0.4px;
-  color: #000;
-  text-shadow: 1px 0 rgba(0, 0, 0, 0.08), -1px 0 rgba(0, 0, 0, 0.08),
-    0 1px rgba(0, 0, 0, 0.08), 0 -1px rgba(0, 0, 0, 0.08);
-}
-
-.hint-min .hitem span {
-  letter-spacing: 0.2px;
 }
 .hint-min .hitem small {
-  margin-left: 4px;
   opacity: 0.6;
-  font-size: 0.9em;
 }
-
-.hint-min .icon-swipe {
-  width: clamp(22px, 4vw, 28px);
-  height: clamp(10px, 2vw, 14px);
+@media (max-width: 380px) {
+  .hint-min .hitem small {
+    display: none;
+  } /* buang teks tambahan */
 }
-
-/* Kompak di layar mungil */
 @media (max-width: 360px) {
   .hint-min {
     gap: 8px;
@@ -350,7 +319,8 @@ body {
     display: none;
   }
 }
-/* Card (scene) */
+
+/* Card / scene box */
 .ui-box {
   background: var(--color-2);
   padding: var(--space);
@@ -367,20 +337,19 @@ p {
   margin: 8px 0;
 }
 
-/* Floating balloons background (global) */
+/* Floating balloons background */
 .float-balloons {
   position: absolute;
   inset: 0;
-  overflow: hidden;
   pointer-events: none;
   z-index: 0;
   opacity: 0.3;
+  overflow: hidden;
 }
 .layer-top {
   position: relative;
   z-index: 1;
 }
-
 .ib {
   position: absolute;
   left: var(--x, 50%);
@@ -427,7 +396,7 @@ p {
   }
 }
 
-/* =============== QUIZ =============== */
+/* QUIZ */
 .quiz {
   display: grid;
   gap: 10px;
@@ -499,7 +468,7 @@ p {
   }
 }
 
-/* Dialog (Pokémon style) */
+/* Dialog */
 .dialog {
   background: var(--color-1);
   padding: 10px;
@@ -512,7 +481,48 @@ p {
   line-height: 1.35;
 }
 
-/* =============== BALLOONS STAGE =============== */
+/* === 8-bit action button (dipakai Gift/Outro) === */
+.chip {
+  appearance: none;
+  -webkit-appearance: none;
+  background: var(--color-2);
+  color: #000;
+  border: 0;
+  padding: clamp(10px, 1.6vh, 12px) clamp(14px, 3.2vw, 18px);
+  min-height: 44px;
+  min-width: clamp(120px, 32vw, 180px);
+  font-size: var(--fs-sm);
+  line-height: 1;
+  cursor: pointer;
+
+  /* pixel look */
+  box-shadow: 0 0 0 var(--px) var(--color-4) inset,
+    0 0 0 calc(var(--px) * 0.75) #000;
+}
+.chip:focus-visible {
+  outline: calc(var(--px) * 2) solid var(--accent-2);
+  outline-offset: 0;
+  box-shadow: 0 0 0 calc(var(--px) * 1) var(--color-4) inset,
+    0 0 0 calc(var(--px) * 1.5) #000 inset;
+}
+.chip:active {
+  transform: translateY(1px);
+  box-shadow: 0 0 0 var(--px) var(--color-4) inset,
+    0 0 0 calc(var(--px) * 1.5) #000, inset 0 0 0 9999px rgba(0, 0, 0, 0.04);
+}
+/* Outro: tombol muncul belakangan + ada jarak */
+.outro-btn {
+  margin-top: clamp(12px, 2.6vh, 20px); /* GAP dari paragraf */
+  opacity: 0; /* disembunyikan dulu */
+  pointer-events: none;
+  transition: opacity 0.25s linear;
+}
+.outro-btn.show {
+  opacity: 1; /* reveal */
+  pointer-events: auto;
+}
+
+/* BALLOONS */
 .grid {
   display: grid;
   grid-template-columns: repeat(var(--cols, 2), var(--tile, 120px));
@@ -524,53 +534,41 @@ p {
   position: relative;
   width: var(--tile, 120px);
   height: var(--tile, 120px);
-  min-width: 44px;
-  min-height: 44px;
+  min-width: 56px;
+  min-height: 56px;
   display: grid;
   place-items: center;
   background: transparent;
   border: 0;
   cursor: pointer;
-  z-index: 1; /* di atas background balloons */
+  z-index: 1;
 }
 .grid .tile .balloon-svg {
   width: 90%;
   height: 90%;
   object-fit: contain;
 }
-
-/* Pesan setelah pop — super ketat & pasti muat */
+/* dialog di tile */
 .tile > .dialog {
   position: absolute;
   inset: clamp(4px, calc(var(--tile) * 0.06), 10px);
-  box-sizing: border-box;
-
   display: grid;
   place-items: center;
   text-align: center;
-
-  /* TIPOGRAFI LEBIH KETAT */
+  box-sizing: border-box;
   padding: clamp(4px, calc(var(--tile) * 0.08), 10px);
-  font-size: clamp(
-    8px,
-    calc(var(--tile) * 0.07),
-    12px
-  ); /* ↓ coeff agar hemat ruang */
-  line-height: clamp(1.05, 1.1, 1.2);
-
-  /* Bungkus agresif */
+  font-size: clamp(8px, calc(var(--tile) * 0.075), 13px);
+  line-height: 1.15;
   overflow: hidden;
-  text-wrap: pretty;
   overflow-wrap: anywhere;
   word-break: break-word;
+  text-wrap: pretty;
   hyphens: auto;
-
   color: #553b4d;
-  background: rgba(255, 245, 228, 0.92);
+  background: rgba(255, 245, 228, 0.94);
   border-radius: clamp(6px, calc(var(--tile) * 0.12), 12px);
   box-shadow: 0 0 0 var(--px) var(--color-4) inset,
     0 1px 6px rgba(0, 0, 0, 0.08);
-
   opacity: 0;
   transform: scale(0.95);
   transition: opacity 0.22s ease, transform 0.22s ease;
@@ -580,8 +578,6 @@ p {
   opacity: 1;
   transform: scale(1);
 }
-
-/* Animasi "pop" untuk SVG balon */
 .pop {
   animation: pp 0.24s ease forwards;
 }
@@ -592,7 +588,7 @@ p {
   }
 }
 
-/* =============== CANDLE =============== */
+/* CANDLE */
 .cake {
   display: grid;
   place-items: center;
@@ -687,11 +683,11 @@ p {
 .progress > i {
   display: block;
   height: 100%;
-  width: 0%;
+  width: 0;
   background: var(--color-4);
 }
 
-/* === 8-bit Slideshow (Memories) === */
+/* MEMORIES — 8-bit slideshow */
 .ss-wrap {
   width: min(680px, 100%);
   margin: 0 auto;
@@ -699,24 +695,20 @@ p {
   gap: 8px;
   justify-items: center;
 }
-
 .ss-stage {
   position: relative;
   width: 100%;
-  aspect-ratio: 4 / 3; /* konsisten 4:3 vibe retro */
+  aspect-ratio: 4/3;
   background: var(--color-2);
   box-shadow: 0 0 0 var(--px) var(--color-3) inset;
   overflow: hidden;
 }
-
 .ss-stage img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   image-rendering: pixelated;
 }
-
-/* tombol panah bulat 8-bit */
 .ss-nav {
   position: absolute;
   top: 50%;
@@ -729,7 +721,6 @@ p {
   box-shadow: 0 0 0 var(--px) var(--color-4) inset;
   cursor: pointer;
   font-size: clamp(14px, 2.6vmin, 18px);
-  line-height: 1;
 }
 .ss-nav.prev {
   left: clamp(6px, 1.2vmin, 10px);
@@ -737,8 +728,6 @@ p {
 .ss-nav.next {
   right: clamp(6px, 1.2vmin, 10px);
 }
-
-/* indikator (dots) kotak 8-bit */
 .ss-dots {
   display: flex;
   gap: 6px;
@@ -756,8 +745,6 @@ p {
 .ss-dots .dot[aria-selected="true"] {
   background: var(--color-4);
 }
-
-/* kecil: kasih ruang lebih buat tombol */
 @media (max-width: 420px) {
   .ss-nav {
     width: 42px;
@@ -765,64 +752,47 @@ p {
   }
 }
 
-/* Message auto-grow */
-/* Message auto-fit */
+/* MESSAGE */
 .msg-wrap {
   width: min(680px, 100%);
   margin: auto;
-  height: 100%; /* <-- ambil tinggi penuh stage */
-  display: grid; /* 3 baris: head, box (fleksibel), note */
+  height: 100%;
+  display: grid;
   grid-template-rows: auto 1fr auto;
   gap: 8px;
 }
-
 .msg-box {
-  /* biarin tinggi mengikuti baris tengah (1fr) */
   height: auto;
-  max-height: none; /* tak batasi manual, pakai grid saja */
-  overflow: auto; /* scroll hanya kalau benar-benar overflow */
-  transition: none; /* nggak perlu animasi tinggi */
+  max-height: none;
+  overflow: auto;
 }
-
 .msg-content {
   padding: 10px;
 }
 
-/* Outro */
-.center {
-  display: grid;
-  place-items: center;
-}
-
-/* Transitions FX */
+/* TRANSITIONS */
 .fx-iris,
 .fx-tiles {
   position: absolute;
   inset: 0;
   z-index: 99;
   pointer-events: none;
-  opacity: 0; /* disembunyikan ketika tidak aktif */
-  transition: opacity var(--overlay-fade, 140ms) linear; /* <— gunakan var baru */
+  opacity: 0;
+  transition: opacity 140ms linear;
 }
-
-/* Saat aktif, langsung kelihatan */
 .fx-iris.active,
 .fx-tiles.active {
   opacity: 1;
 }
-
-/* ===== IRIS (OPENING) ===== */
 .fx-iris::before {
   content: "";
   position: absolute;
   inset: 0;
   background: radial-gradient(closest-side, transparent 60%, #000 61% 100%);
   transform-origin: 50% 50%;
-  animation: iris-open var(--iris-dur, 1100ms) ease forwards;
+  animation: iris-open var(--iris-dur, 1000ms) ease forwards;
   will-change: transform;
 }
-
-/* Lubang kecil -> membesar (membuka) */
 @keyframes iris-open {
   from {
     transform: scale(0.001);
@@ -831,11 +801,8 @@ p {
     transform: scale(12);
   }
 }
-
-/* ===== TILES (tetap, tanpa fade panjang) ===== */
 .fx-tiles {
   display: grid;
-  grid-template-columns: repeat(14, 1fr);
   grid-auto-rows: 1fr;
 }
 .fx-tiles > i {
@@ -849,7 +816,6 @@ p {
   }
 }
 
-/* Reduced motion: cepat & sederhana */
 @media (prefers-reduced-motion: reduce) {
   .fx-iris::before,
   .fx-tiles > i {
@@ -858,5 +824,32 @@ p {
   .fx-iris,
   .fx-tiles {
     transition: opacity 120ms linear;
+  }
+}
+
+/* Short viewport tuning */
+@media (max-height: 560px) {
+  :root {
+    --space: clamp(6px, 1.8vh, 12px);
+    --fs-sm: clamp(9px, 1.9vw, 13px);
+    --fs-md: clamp(11px, 2.2vw, 15px);
+    --fs-lg: clamp(13px, 2.6vw, 18px);
+  }
+  .hud,
+  .statusbar {
+    padding-block: 6px;
+  }
+  .ss-stage {
+    aspect-ratio: 16/10;
+  }
+  .cake-visual {
+    height: clamp(150px, 24vh, 200px);
+  }
+}
+
+/* Modern viewport fix */
+@supports (height: 100dvh) {
+  .screen {
+    height: 100dvh;
   }
 }
