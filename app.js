@@ -252,7 +252,10 @@
       { once: true, passive: true }
     );
   });
-  btnMute.addEventListener("click", () => audio.toggleMute());
+  btnMute.addEventListener("click", () => {
+    audio.toggleMute();
+    maybeAdvanceFromAudioSetup();
+  });
   btnBGM.addEventListener("click", () => {
     audio.unlock();
     const next = btnBGM.getAttribute("aria-pressed") !== "true";
@@ -260,7 +263,10 @@
     writeBGM(next);
     if (next) {
       if (!audio.muted) audio.bgmOn();
-    } else audio.bgmOff();
+    } else {
+      audio.bgmOff();
+    }
+    maybeAdvanceFromAudioSetup();
   });
   document.addEventListener("visibilitychange", () => {
     try {
@@ -271,8 +277,27 @@
       if (readBGM() && !audio.muted && !audio.bgmHowl?.playing()) audio.bgmOn();
     }
   });
+  function maybeAdvanceFromAudioSetup() {
+    // auto lanjut kalau lagi di gate & keduanya ON
+    if (game.currentName === "AudioSetup" && isAudioReady()) {
+      // kecilkan efek dramatis sedikit
+      confettiBurst("mini");
+      audio.play("confirm");
+      game.completeCurrent?.();
+      // tiles supaya terasa mulai game
+      game.setScene("Intro", "tiles");
+    }
+  }
 
   const vibe = (ms) => navigator.vibrate && navigator.vibrate(ms);
+  // Block text selection on the hold button as a safety net
+  document.addEventListener(
+    "selectstart",
+    (e) => {
+      if (e.target.closest(".hold")) e.preventDefault();
+    },
+    { passive: false }
+  );
 
   /* ---------- Transitions (strict) ---------- */
   const IRIS_MS = prefersReduced ? 220 : 1600;
@@ -341,6 +366,10 @@
       } catch {}
       requestAnimationFrame(() => fxIris.classList.remove("active"));
     }, dur);
+  }
+
+  function isAudioReady() {
+    return !audio.muted && readBGM();
   }
 
   /* ---------- Scene Manager ---------- */
@@ -572,6 +601,77 @@
   };
 
   /* ---------- Scenes ---------- */
+  /* ---------- SCENE: Audio Setup (gate sebelum Intro) ---------- */
+  game.scenes.AudioSetup = {
+    _timer: 0,
+    enter() {
+      // highlight tombol HUD
+      btnMute.classList.add("highlight");
+      btnBGM.classList.add("highlight");
+
+      const box = ui.box("Sound Check");
+      box.classList.add("audio-setup");
+      const sub = ui.p("Please enable sound & music to get the full vibe ✨");
+      sub.style.opacity = ".8";
+      sub.style.textAlign = "center";
+      box.appendChild(sub);
+
+      const steps = document.createElement("div");
+      steps.className = "steps";
+      steps.innerHTML =
+        "1) Tap <b>🔊</b> to unmute<br/>2) Tap <b>♫</b> to start music";
+      box.appendChild(steps);
+
+      const status = document.createElement("p");
+      status.className = "status";
+      box.appendChild(status);
+
+      const hint = ui.hint("Tap A to start once both are ON");
+      box.appendChild(hint);
+
+      const update = () => {
+        const ok = isAudioReady();
+        status.innerHTML = ok
+          ? '<span class="ok">Ready ✓ Sound ON + Music ON</span>'
+          : '<span class="warn">Not ready • turn ON both</span>';
+        // auto lanjut kalau tiba-tiba sudah ON
+        if (ok) {
+          // beri sedikit jeda biar user lihat status berubah → lanjut
+          clearInterval(this._timer);
+          this._timer = 0;
+          setTimeout(() => maybeAdvanceFromAudioSetup(), 350);
+        }
+      };
+      update();
+      this._timer = setInterval(update, 300);
+
+      return box;
+    },
+    exit() {
+      clearInterval(this._timer);
+      this._timer = 0;
+      // lepas highlight
+      btnMute.classList.remove("highlight");
+      btnBGM.classList.remove("highlight");
+    },
+    onA() {
+      if (isAudioReady()) {
+        confettiBurst("mini");
+        audio.play("confirm");
+        game.setScene("Intro", "tiles");
+      } else {
+        // getar + fokuskan user untuk klik HUD
+        vibe(30);
+        btnMute.classList.add("highlight");
+        btnBGM.classList.add("highlight");
+      }
+    },
+    onB() {
+      // Tidak ada back; beri vibra kecil sebagai feedback
+      vibe(15);
+    },
+  };
+  /* ---------- SCENE: Intro ---------- */
   game.scenes.Intro = {
     enter() {
       const box = ui.box("Happy Birthday, Natasya!");
@@ -988,9 +1088,14 @@
           d.setAttribute("aria-selected", String(i === this.idx))
         );
       };
-      this.go = (i) => {
+      this.go = (i, play = true) => {
         const n = this.imgs.length;
-        this.idx = ((i % n) + n) % n;
+        const next = ((i % n) + n) % n;
+        if (next !== this.idx && play) {
+          audio.play("confirm"); // bunyi klik/geser
+          vibe(8); // getaran kecil (kalau ada)
+        }
+        this.idx = next;
         this.update();
       };
       prevBtn.addEventListener("click", () => this.go(this.idx - 1));
@@ -1082,19 +1187,26 @@
       note.style.transition = "opacity .25s linear";
       wrap.appendChild(note);
 
+      const REVEAL_DELAY = prefersReduced ? 200 : 900; // jeda setelah "A letter for you…"
+      const MSG_TYPE_SPEED = 58; // lebih pelan dari 46
+      const PARA_GAP = prefersReduced ? 160 : 280; // jeda antar paragraf
+
       const typeAll = () =>
         new Promise((res) => {
           const step = () => {
             if (this.index >= MSG.length) return res();
             const p = document.createElement("p");
             this.content.appendChild(p);
-            typeText(p, MSG[this.index++], 46, () => setTimeout(step, 180));
+            typeText(p, MSG[this.index++], MSG_TYPE_SPEED, () =>
+              setTimeout(step, PARA_GAP)
+            );
           };
           step();
         });
 
       typeTitle(head, { subEl: sub, titleSpeed: 54, subSpeed: 46 }).then(
         async () => {
+          await sleep(REVEAL_DELAY); // jeda setelah "A letter for you…"
           await typeAll();
           requestAnimationFrame(() => (note.style.opacity = "1"));
         }
@@ -1227,6 +1339,349 @@
   });
 
   /* Init */
+  /* ---------- COACH / FIRST-RUN TUTORIAL ---------- */
+  const coach = (() => {
+    let overlay, tip, ringEl, focusRing;
+    const LS_KEY = "coach_done_v1";
+
+    // helper: buat beep universal (pakai Howler jika ada, fallback oscillator)
+    // ===== Coach helpers (DROP-IN REPLACE) =====
+    function coachApplyExempt(on = true) {
+      const ids = ["btnMute", "btnBGM"]; // tambah "starCount" kalau mau ★ ikut non-blur
+      ids.forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) el.classList.toggle("coach-exempt", on);
+      });
+    }
+
+    function coachSetTip({ title = "", body = "", actions = [] }) {
+      const tip = document.getElementById("coachTip");
+      if (!tip) return;
+      tip.innerHTML = `
+    <h3>${title}</h3>
+    <p>${body}</p>
+    <div class="coach-actions">
+      ${actions
+        .map(
+          (a) =>
+            `<button class="coach-btn" data-act="${a.act}">${a.label}</button>`
+        )
+        .join("")}
+    </div>
+  `;
+    }
+
+    function coachBindActions(map = {}) {
+      document.querySelectorAll(".coach-btn").forEach((b) => {
+        b.onclick = (e) => {
+          const act = e.currentTarget.getAttribute("data-act");
+          map[act]?.();
+        };
+      });
+    }
+
+    function coachShow() {
+      document.getElementById("coach")?.classList.remove("coach-hidden");
+      coachApplyExempt(true);
+    }
+    function coachHide() {
+      document.getElementById("coach")?.classList.add("coach-hidden");
+      coachApplyExempt(false);
+    }
+
+    function coachFocusTo(el) {
+      const ring = document.querySelector(".coach-focus-ring");
+      if (!ring || !el) return;
+      const r = el.getBoundingClientRect();
+      ring.style.left = `${r.left - 6}px`;
+      ring.style.top = `${r.top - 6}px`;
+      ring.style.width = `${r.width + 12}px`;
+      ring.style.height = `${r.height + 12}px`;
+    }
+    function startCoach() {
+      // STEP 1: Enable Sound
+      coachSetTip({
+        title: "Enable Sound",
+        body: "Tap 🔊 to unmute. Try a short beep.",
+        actions: [
+          { act: "test", label: "Play test beep" },
+          { act: "next", label: "Continue" },
+          { act: "skip", label: "Skip" },
+        ],
+      });
+      coachBindActions({
+        test() {
+          audio.unlock?.();
+          audio.play?.("type");
+        },
+        next() {
+          coachStepMusic();
+        },
+        skip() {
+          coachHide();
+          game.setScene("Intro", "iris");
+        },
+      });
+      coachShow();
+      coachFocusTo(document.getElementById("btnMute"));
+    }
+
+    function coachStepMusic() {
+      coachSetTip({
+        title: "Background Music",
+        body: "Tap ♫ to start/stop the BGM.",
+        actions: [
+          { act: "toggle", label: "Play/Pause" },
+          { act: "start", label: "Start" },
+        ],
+      });
+      coachBindActions({
+        toggle() {
+          document.getElementById("btnBGM")?.click();
+        },
+        start() {
+          coachHide();
+          game.setScene("Intro", "iris");
+        },
+      });
+      coachShow();
+      coachFocusTo(document.getElementById("btnBGM"));
+    }
+
+    function playBeep(ms = 500) {
+      try {
+        audio.unlock?.();
+        // pakai SFX yang ada biar konsisten
+        if (audio.ready && audio.sfx.confirm) {
+          audio.sfx.confirm.play();
+          return;
+        }
+      } catch {}
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "square";
+        osc.frequency.value = 880;
+        gain.gain.value = 0.08;
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        setTimeout(() => {
+          osc.stop();
+          ctx.close();
+        }, ms);
+      } catch {}
+    }
+
+    // Buat overlay & elemen sekali
+    function ensureOverlay() {
+      if (overlay) return;
+
+      // 1) Scene-only overlay (dims scene so HUD/FOOTER stay clean)
+      overlay = document.createElement("div");
+      overlay.className = "coach-overlay coach-hidden";
+      overlay.setAttribute("role", "dialog");
+      overlay.setAttribute("aria-modal", "true");
+
+      const wrap = document.createElement("div");
+      wrap.className = "coach-wrap";
+
+      const arr = document.createElement("i");
+      arr.className = "coach-arrow";
+
+      tip = document.createElement("div");
+      tip.className = "coach-tip pixel-border";
+      tip.id = "coachTip";
+
+      wrap.append(arr, tip);
+      overlay.append(wrap);
+      // ⬇️ keep the dim/tip INSIDE the scene so only scene is dimmed
+      root.appendChild(overlay);
+
+      // 2) Global focus ring OUTSIDE the scene so it's never clipped
+      focusRing = document.createElement("div");
+      focusRing.className = "coach-focus-ring";
+      focusRing.id = "coachRing";
+      focusRing.style.display = "none";
+      document.body.appendChild(focusRing); // ⬅️ important
+
+      // ESC to skip
+      window.addEventListener("keydown", (e) => {
+        if (overlay.classList.contains("coach-hidden")) return;
+        if (e.key === "Escape") finish(true);
+      });
+    }
+
+    function showOverlay() {
+      ensureOverlay();
+      overlay.classList.remove("coach-hidden");
+    }
+    function hideOverlay() {
+      if (overlay) overlay.classList.add("coach-hidden");
+    }
+
+    // REPLACE function placeFocus + trackFocus with this:
+
+    let _trackedEl = null;
+    let _rafFocus = 0;
+
+    function placeFocus(box) {
+      const ring = document.getElementById("coachRing");
+      if (!ring) return;
+      if (!box) {
+        ring.style.display = "none";
+        return;
+      }
+      const r = box.getBoundingClientRect();
+      ring.style.display = "block";
+      ring.style.left = `${Math.round(r.left - 6)}px`;
+      ring.style.top = `${Math.round(r.top - 6)}px`;
+      ring.style.width = `${Math.round(r.width + 12)}px`;
+      ring.style.height = `${Math.round(r.height + 12)}px`;
+    }
+
+    function trackFocus(el) {
+      _trackedEl = el || null;
+      cancelAnimationFrame(_rafFocus);
+
+      const tick = () => {
+        if (_trackedEl && document.body.contains(_trackedEl)) {
+          placeFocus(_trackedEl);
+        }
+        _rafFocus = requestAnimationFrame(tick);
+      };
+      _rafFocus = requestAnimationFrame(tick);
+
+      const upd = () => placeFocus(_trackedEl);
+      // Keep in sync with common layout changes
+      window.addEventListener("resize", upd, { passive: true });
+      window.addEventListener("scroll", upd, { passive: true });
+      window.addEventListener("orientationchange", upd, { passive: true });
+      if (window.visualViewport) {
+        visualViewport.addEventListener("resize", upd, { passive: true });
+        visualViewport.addEventListener("scroll", upd, { passive: true });
+      }
+    }
+    // Step content builders
+    function stepRinger(next) {
+      tip.innerHTML = `
+        <h3>Turn on your Ring 🔔</h3>
+        <p>Make sure your phone isn’t on Silent and media volume is up.</p>
+        <div class="coach-actions">
+          <button class="coach-btn" id="coachBeep">Test beep</button>
+          <button class="coach-btn" id="coachNext">Continue</button>
+          <button class="coach-btn" id="coachSkip">Skip</button>
+        </div>
+      `;
+      $("#coachBeep", tip).addEventListener("click", () => playBeep(500));
+      $("#coachNext", tip).addEventListener("click", () => next());
+      $("#coachSkip", tip).addEventListener("click", () => finish(true));
+      trackFocus(null); // no highlight on this step
+    }
+
+    function stepUnmute(next) {
+      tip.innerHTML = `
+        <h3>Enable Sound</h3>
+        <p>Tap <b>🔊</b> to unmute effects.</p>
+        <div class="coach-actions">
+          <button class="coach-btn" id="coachSkip">Skip</button>
+        </div>
+      `;
+      $("#coachSkip", tip).addEventListener("click", () => next());
+      trackFocus(btnMute);
+
+      // auto-advance when unmuted
+      const advanceIfReady = () => {
+        if (!audio.muted) {
+          window.removeEventListener("click", check, true);
+          next();
+        }
+      };
+      const check = () => setTimeout(advanceIfReady, 0);
+      window.addEventListener("click", check, true);
+    }
+
+    function stepMusic(next) {
+      tip.innerHTML = `
+        <h3>Start Music</h3>
+        <p>Tap <b>♫</b> to play the BGM.</p>
+        <div class="coach-actions">
+          <button class="coach-btn" id="coachSkip">Skip</button>
+        </div>
+      `;
+      $("#coachSkip", tip).addEventListener("click", () => next());
+      trackFocus(btnBGM);
+
+      const obs = new MutationObserver(() => {
+        if (btnBGM.getAttribute("aria-pressed") === "true") {
+          obs.disconnect();
+          next();
+        }
+      });
+      obs.observe(btnBGM, {
+        attributes: true,
+        attributeFilter: ["aria-pressed"],
+      });
+    }
+
+    function stepReady(next) {
+      tip.innerHTML = `
+        <h3>All set!</h3>
+        <p>Sound & music are on. Enjoy 🎂</p>
+        <div class="coach-actions">
+          <button class="coach-btn" id="coachStart">Begin</button>
+        </div>
+      `;
+      $("#coachStart", tip).addEventListener("click", () => next());
+      trackFocus(null);
+    }
+
+    function finish(skipped = false) {
+      cancelAnimationFrame(_rafFocus);
+      _rafFocus = 0;
+      hideOverlay();
+      placeFocus(null);
+      try {
+        localStorage.setItem(LS_KEY, skipped ? "skipped" : "done");
+      } catch {}
+      // lanjut ke Intro kalau belum start
+      if (!game._started && game.currentName !== "Intro") {
+        game.setScene("Intro", "iris");
+      }
+    }
+
+    const steps = [stepRinger, stepUnmute, stepMusic, stepReady];
+
+    async function start() {
+      showOverlay();
+      let i = 0;
+      const next = () => {
+        i++;
+        if (i >= steps.length) finish(false);
+        else steps[i](next);
+      };
+      steps[0](next);
+    }
+
+    function startIfNeeded() {
+      let seen = "";
+      try {
+        seen = localStorage.getItem(LS_KEY) || "";
+      } catch {}
+      if (!seen) start();
+      else {
+        // kalau sudah pernah, langsung mulai Intro normal
+        if (!game._started && game.currentName !== "Intro") {
+          game.setScene("Intro", "iris");
+        }
+      }
+    }
+
+    // public API
+    return { start, startIfNeeded, finish };
+  })();
+
   ensureBalloonsLayer();
-  game.setScene("Intro", "iris");
+  coach.startIfNeeded();
 })();

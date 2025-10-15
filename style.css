@@ -599,6 +599,7 @@ p {
   position: relative;
   width: min(320px, 80%);
   height: clamp(180px, 28vh, 240px);
+  margin-top: 20px;
   display: grid;
   place-items: center;
 }
@@ -671,6 +672,15 @@ p {
   border: 0;
   position: relative;
   cursor: pointer;
+}
+/* Prevent text selection / callout on the hold button */
+.hold,
+.hold * {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none; /* iOS long-press menu */
+  -webkit-tap-highlight-color: transparent; /* remove tap flash */
+  touch-action: none; /* we only need press+hold */
 }
 .progress {
   position: absolute;
@@ -920,4 +930,151 @@ a[x-apple-data-detectors] {
   button * {
     -webkit-text-fill-color: #000 !important;
   }
+}
+
+/* === AUDIO SETUP HIGHLIGHT === */
+.icon-btn.highlight {
+  position: relative;
+  animation: hudPulse 1.1s ease-in-out infinite;
+}
+
+@keyframes hudPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 var(--px) var(--color-4) inset;
+    transform: none;
+    filter: drop-shadow(0 0 0 rgba(154, 209, 255, 0));
+  }
+  50% {
+    box-shadow: 0 0 0 calc(var(--px) * 1.5) var(--accent-2) inset,
+      0 0 0 calc(var(--px) * 2.2) #000 inset;
+    transform: translateY(-1px);
+    filter: drop-shadow(0 0 6px rgba(154, 209, 255, 0.7));
+  }
+}
+
+/* Kartu “Sound Check” biar sedikit center & lega */
+.audio-setup {
+  text-align: center;
+}
+.audio-setup .steps {
+  margin: 10px 0 4px;
+  font-size: var(--fs-xs);
+  opacity: 0.9;
+  line-height: 1.5;
+}
+.audio-setup .status {
+  margin-top: 8px;
+  font-size: var(--fs-sm);
+}
+.audio-setup .ok {
+  color: #0a0; /* hijau sederhana 8-bit */
+}
+.audio-setup .warn {
+  color: #a00;
+}
+
+/* ===== Coach Overlay — hanya cover scene, HUD/FOOTER aman ===== */
+.hud,
+.statusbar {
+  position: relative;
+  z-index: 200;
+}
+.coach-overlay {
+  position: absolute; /* inside #scene-root */
+  inset: 0;
+  z-index: 180; /* below HUD/FOOTER */
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(2px);
+  pointer-events: none;
+}
+.coach-hidden {
+  display: none;
+}
+
+.coach-wrap {
+  width: min(560px, 96vw);
+  padding: clamp(6px, 2vw, 10px);
+  pointer-events: none; /* only the tip is clickable */
+}
+.coach-tip {
+  width: min(460px, 92vw);
+  background: var(--color-2);
+  color: #222;
+  padding: clamp(10px, 3vw, 14px);
+  text-align: center;
+  box-shadow: 0 0 0 var(--px) var(--color-4) inset,
+    0 0 0 calc(var(--px) * 0.75) #000;
+  pointer-events: auto; /* buttons inside are clickable */
+}
+
+.coach-tip h3 {
+  margin: 0 0 8px;
+  font-size: clamp(14px, 3.2vw, 18px);
+}
+.coach-tip p {
+  margin: 6px 0 10px;
+  font-size: clamp(11px, 2.4vw, 14px);
+  line-height: 1.35;
+}
+
+/* Actions: auto-wrap nicely on small screens */
+.coach-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(6px, 2vw, 10px);
+  justify-content: center;
+  margin-top: 4px;
+}
+.coach-btn {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 0;
+  background: var(--color-3);
+  box-shadow: 0 0 0 var(--px) var(--color-4) inset;
+  cursor: pointer;
+  font-size: clamp(11px, 2.4vw, 14px);
+}
+
+/* GLOBAL focus ring (added to <body>) */
+.coach-focus-ring {
+  position: fixed; /* not clipped by #scene-root */
+  z-index: 9999; /* above everything */
+  pointer-events: none;
+  border-radius: 6px;
+  box-shadow: 0 0 0 calc(var(--px) * 2) #000,
+    0 0 0 calc(var(--px) * 3) var(--color-4);
+  animation: coachPulse 1.1s ease-in-out infinite;
+}
+@keyframes coachPulse {
+  50% {
+    box-shadow: 0 0 0 calc(var(--px) * 2) #000,
+      0 0 0 calc(var(--px) * 4) var(--color-4);
+  }
+}
+
+/* Extra tiny screens — keep everything readable & non-overflowing */
+@media (max-width: 340px) {
+  .coach-tip {
+    width: 94vw;
+    padding: 10px;
+  }
+  .coach-actions {
+    gap: 6px;
+  }
+}
+
+/* Outro: tombol muncul setelah teks + ada gap */
+.outro-btn {
+  opacity: 0;
+  transform: translateY(4px);
+  margin-top: clamp(10px, 2.8vmin, 16px); /* gap dari teks */
+  transition: opacity 0.25s linear, transform 0.25s ease;
+}
+.outro-btn.show {
+  opacity: 1;
+  transform: none;
 }
