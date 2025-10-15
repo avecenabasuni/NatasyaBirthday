@@ -853,3 +853,71 @@ p {
     height: 100dvh;
   }
 }
+
+/* === PATCH: paksa warna teks jadi hitam di mobile === */
+
+/* Matikan warna link default (biru/ungu) */
+a,
+a:link,
+a:visited,
+a:active,
+a:hover {
+  color: #000 !important;
+  text-decoration: none;
+}
+
+/* Semua teks di footer/statusbar jadi hitam */
+.statusbar,
+.statusbar * {
+  color: #000 !important;
+}
+
+/* Teks tombol A/B */
+.btn-a,
+.btn-b {
+  color: #000 !important;
+}
+
+/* Seluruh area quiz: judul, pertanyaan, opsi (A/B/C/D) */
+.quiz,
+.quiz * {
+  color: #000 !important;
+}
+
+/* Badge huruf (A/B/C/D) & label opsi */
+.badge,
+.opt span {
+  color: #000 !important;
+}
+
+/* Tombol generik (Download PNG, Grand Finale, Restart, dsb.) */
+button,
+button * {
+  color: #000 !important;
+}
+
+/* Hint bar & hint-inline */
+.hint-min,
+.hint-min *,
+.hint-inline {
+  color: #000 !important;
+}
+
+/* Cegah iOS “smart links” merubah tampilan */
+a[x-apple-data-detectors] {
+  color: #000 !important;
+  text-decoration: none !important;
+  pointer-events: auto !important;
+}
+
+/* Safari iOS kadang pakai text-fill untuk kontrol */
+@supports (-webkit-text-size-adjust: none) {
+  .statusbar *,
+  .quiz *,
+  .btn-a,
+  .btn-b,
+  button,
+  button * {
+    -webkit-text-fill-color: #000 !important;
+  }
+}
