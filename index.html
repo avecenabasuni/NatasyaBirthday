@@ -1,21 +1,31 @@
 ﻿<!DOCTYPE html>
 <html lang="en">
   <head>
+    <!-- ========================================
+         Document Meta
+    ========================================= -->
     <meta charset="utf-8" />
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1, viewport-fit=cover"
     />
     <meta name="format-detection" content="telephone=no,email=no,address=no" />
-    <title>Natasya — 8-bit Birthday Quest</title>
+    <meta
+      name="description"
+      content="Pastel 8-bit birthday quest for Natasya &mdash; play mini games, earn stars, and enjoy a custom celebration."
+    />
+    <meta name="theme-color" content="#fff5e4" />
+    <title>Natasya &mdash; 8-bit Birthday Quest</title>
 
-    <!-- favicon data-url -->
+    <!-- ========================================
+         Icons & Typography
+         - Inline favicon avoids 404s on static hosts
+         - Preconnects improve webfont loading
+    ========================================= -->
     <link
       rel="icon"
       href="data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjZmY4YmE3IiB2aWV3Qm94PSIwIDAgMTYgMTYiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjE2IiBoZWlnaHQ9IjE2IiBmaWxsPSIjZmZkMWQxIi8+PHBhdGggZD0iTTggMTQgTDMgOSA5IDUgMTMgOSA4IDE0eiIgZmlsbD0iI2ZmOGJhNyIvPjwvc3ZnPg=="
     />
-
-    <!-- 8-bit font -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -23,9 +33,10 @@
       rel="stylesheet"
     />
 
+    <!-- ========================================
+         Core Styles & Runtime
+    ========================================= -->
     <link rel="stylesheet" href="./style.css" />
-
-    <!-- cdn libs -->
     <script
       defer
       src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"
@@ -34,43 +45,48 @@
       defer
       src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.min.js"
     ></script>
-
     <script defer src="./app.js"></script>
   </head>
+
   <body>
+    <!-- ========================================
+         Application Shell
+    ========================================= -->
     <div
       id="app"
       class="screen"
       role="application"
       aria-label="Natasya 8-bit Birthday"
     >
-      <!-- HUD -->
+      <!-- ===== HUD / Top Bar ===== -->
       <header class="hud pixel-border">
         <div class="hud-left">
-          <span class="brand">🎂 Natasya’s Day</span>
+          <span class="brand">&#127874; Natasya&rsquo;s Day</span>
         </div>
         <div class="hud-right">
           <button
             id="btnMute"
             class="icon-btn pixel-border"
-            title="Mute/Unmute"
+            title="Mute or unmute all sounds"
             aria-pressed="false"
           >
-            🔊
+            &#128266;
           </button>
           <button
             id="btnBGM"
             class="icon-btn pixel-border"
-            title="Play/Pause BGM"
+            title="Play or pause background music"
             aria-pressed="false"
           >
-            ♫
+            &#9835;
           </button>
-          <span class="stars">⭐ <b id="starCount">0</b>/8</span>
+          <span class="stars" aria-live="polite" aria-atomic="true">
+            &#11088; <b id="starCount">0</b>/7
+          </span>
         </div>
       </header>
 
-      <!-- SCENE -->
+      <!-- ===== Scene Container ===== -->
       <main
         id="scene-root"
         class="card pixel-border"
@@ -82,9 +98,9 @@
         <div id="fx-tiles" class="fx-tiles"></div>
       </main>
 
-      <!-- FOOTER -->
+      <!-- ===== Footer Controls ===== -->
       <footer class="statusbar pixel-border">
-        <div class="hint-min" role="group" aria-label="Controls hint">
+        <div class="hint-min" role="group" aria-label="Controller mapping">
           <span class="hitem"><b>A</b><span>Confirm</span></span>
           <span class="hitem"><b>B</b><span>Back</span></span>
           <span class="hitem h-swipe">
@@ -101,12 +117,13 @@
         </div>
         <div class="controls">
           <button id="btnB" class="btn-b" aria-label="Back (B)">B</button>
-          <button id="btnA" class="btn-a" aria-label="Confirm / Next (A)">
+          <button id="btnA" class="btn-a" aria-label="Confirm or next (A)">
             A
           </button>
         </div>
       </footer>
 
+      <!-- ===== Effects Layer ===== -->
       <canvas id="confetti-canvas"></canvas>
     </div>
   </body>

@@ -1,39 +1,83 @@
 ﻿(() => {
-  const $ = (s, el = document) => el.querySelector(s);
-  const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+  "use strict";
 
-  // Roots & UI
-  const root = $("#scene-root");
-  const btnA = $("#btnA");
-  const btnB = $("#btnB");
-  const btnMute = $("#btnMute");
-  const btnBGM = $("#btnBGM");
-  const starCountEl = $("#starCount");
-  const fxIris = $("#fx-iris");
-  const fxTiles = $("#fx-tiles");
-  const confettiCanvas = $("#confetti-canvas");
-  let confettiApi = null;
+  /* ==========================================================================
+     Natasya — 8-bit Birthday Quest
+     app.js — CLEANED, CONSOLIDATED & FULLY-COMMENTED
+     --------------------------------------------------------------------------
+     Highlights:
+     - Utilities ($,$$, debounce, safeClosest), viewport fix, confetti helpers
+     - Solid Howler bootstrap: unlock on first gesture, persisted mute/BGM
+     - Robust typewriter with global abort token to prevent SFX carry-over
+     - Scene Manager with effects (tiles/iris) + reduced motion awareness
+     - All scenes consolidated, listeners cleaned on exit
+     - “Coach” first-run overlay dims SCENE only (HUD/FOOTER stay clickable)
+     - Fixed: target.closest null (TextNode/Shadow DOM) via safeClosest()
+     ========================================================================== */
 
-  /* ---------- iOS 100vh fix ---------- */
-  const debounce = (fn, ms = 150) => {
-    let t;
-    return (...a) => {
+  // ---------------------------------------------------------------------------
+  // 1) DOM utilities
+  // ---------------------------------------------------------------------------
+  const $ = (sel, rootEl = document) => rootEl.querySelector(sel);
+  const $$ = (sel, rootEl = document) => [...rootEl.querySelectorAll(sel)];
+
+  /** safeClosest: works on TextNodes & Shadow DOM hosts */
+  function safeClosest(target, selector) {
+    let el = target;
+    if (!(el instanceof Element))
+      el = el && (el.parentElement || el.parentNode);
+    if (!el && target && typeof target.composedPath === "function") {
+      const path = target.composedPath();
+      el = path && path.find((n) => n instanceof Element);
+    }
+    return el && el.closest ? el.closest(selector) : null;
+  }
+
+  const prefersReduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const rand = (a, b) => Math.random() * (b - a) + a;
+  const debounce = (fn, wait = 150) => {
+    let t = 0;
+    return (...args) => {
       clearTimeout(t);
-      t = setTimeout(() => fn(...a), ms);
+      t = setTimeout(() => fn(...args), wait);
     };
   };
+
+  // ---------------------------------------------------------------------------
+  // 2) Root elements & constants
+  // ---------------------------------------------------------------------------
+  const root = document.getElementById("scene-root");
+  const btnA = document.getElementById("btnA");
+  const btnB = document.getElementById("btnB");
+  const btnMute = document.getElementById("btnMute");
+  const btnBGM = document.getElementById("btnBGM");
+  const starCountEl = document.getElementById("starCount");
+  const fxIris = document.getElementById("fx-iris");
+  const fxTiles = document.getElementById("fx-tiles");
+  const confettiCanvas = document.getElementById("confetti-canvas");
+
+  const COLOR_PALETTE = [
+    "#fff5e4",
+    "#ffe3e1",
+    "#ffd1d1",
+    "#ff8ba7",
+    "#9ad1ff",
+    "#b9ffb3",
+  ];
+
+  // ---------------------------------------------------------------------------
+  // 3) Mobile viewport correction (iOS 100vh fix)
+  // ---------------------------------------------------------------------------
   const setVH = () =>
-    document.documentElement.style.setProperty(
-      "--vh",
-      String(window.innerHeight)
-    );
+    document.documentElement.style.setProperty("--vh", String(innerHeight));
   setVH();
   addEventListener("resize", debounce(setVH, 150), { passive: true });
   addEventListener("orientationchange", setVH, { passive: true });
 
-  const prefersReduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-  /* ---------- Confetti ---------- */
+  // ---------------------------------------------------------------------------
+  // 4) Confetti helpers (canvas-confetti if available)
+  // ---------------------------------------------------------------------------
+  let confettiApi = null;
   function initConfetti() {
     try {
       if (!confettiApi && window.confetti?.create && confettiCanvas) {
@@ -42,23 +86,18 @@
           useWorker: true,
         });
       }
-    } catch {}
+    } catch {
+      /* canvas-confetti not present — silently ignore */
+    }
   }
   initConfetti();
   if (!confettiApi) addEventListener("load", initConfetti, { once: true });
 
-  const PALETTE = [
-    "#fff5e4",
-    "#ffe3e1",
-    "#ffd1d1",
-    "#ff8ba7",
-    "#9ad1ff",
-    "#b9ffb3",
-  ];
   function confettiBurst(kind = "mini") {
     if (!confettiApi) return;
-    const base = { shapes: ["square"], colors: PALETTE };
-    if (kind === "mini")
+    const base = { shapes: ["square"], colors: COLOR_PALETTE };
+
+    if (kind === "mini") {
       confettiApi({
         ...base,
         particleCount: 40,
@@ -66,7 +105,9 @@
         scalar: 0.9,
         origin: { y: 0.2 },
       });
-    else if (kind === "base")
+      return;
+    }
+    if (kind === "base") {
       confettiApi({
         ...base,
         particleCount: 100,
@@ -74,27 +115,29 @@
         startVelocity: 40,
         gravity: 0.9,
       });
-    else if (kind === "finale") {
-      confettiApi({
-        ...base,
-        particleCount: 120,
-        angle: 60,
-        spread: 55,
-        origin: { x: 0, y: 0.5 },
-      });
-      confettiApi({
-        ...base,
-        particleCount: 120,
-        angle: 120,
-        spread: 55,
-        origin: { x: 1, y: 0.5 },
-      });
+      return;
     }
+    // finale
+    confettiApi({
+      ...base,
+      particleCount: 120,
+      angle: 60,
+      spread: 55,
+      origin: { x: 0, y: 0.5 },
+    });
+    confettiApi({
+      ...base,
+      particleCount: 120,
+      angle: 120,
+      spread: 55,
+      origin: { x: 1, y: 0.5 },
+    });
   }
 
-  /* ---------- Floating Balloons (global) ---------- */
+  // ---------------------------------------------------------------------------
+  // 5) Scene layers: background balloons + scene container
+  // ---------------------------------------------------------------------------
   const layers = { balloons: null, stage: null };
-  const rand = (a, b) => Math.random() * (b - a) + a;
 
   function generateBalloons(container, count = 18) {
     container.innerHTML = "";
@@ -103,22 +146,23 @@
       b.className = "ib" + (i % 2 ? " alt" : "");
       const x = Math.random() * 100,
         y = Math.random() * 100;
-      const sizeVmin = Math.round(rand(7, 11)),
-        sizePx = Math.round(rand(48, 110));
-      b.style.setProperty("--x", x + "%");
-      b.style.setProperty("--y", y + "%");
+      const sizeVmin = Math.round(rand(7, 11));
+      const sizePx = Math.round(rand(48, 110));
+      b.style.setProperty("--x", `${x}%`);
+      b.style.setProperty("--y", `${y}%`);
       b.style.setProperty(
         "--size",
         `clamp(40px, ${sizeVmin}vmin, ${sizePx}px)`
       );
-      b.style.setProperty("--dur", rand(5.5, 8).toFixed(2) + "s");
-      b.style.setProperty("--delay", rand(-2, 1.5).toFixed(2) + "s");
-      b.style.setProperty("--ampY", Math.round(rand(10, 20)) + "px");
-      b.style.setProperty("--ampX", Math.round(rand(-14, 14)) + "px");
+      b.style.setProperty("--dur", `${rand(5.5, 8).toFixed(2)}s`);
+      b.style.setProperty("--delay", `${rand(-2, 1.5).toFixed(2)}s`);
+      b.style.setProperty("--ampY", `${Math.round(rand(10, 20))}px`);
+      b.style.setProperty("--ampX", `${Math.round(rand(-14, 14))}px`);
       b.style.setProperty("--o", rand(0.18, 0.38).toFixed(2));
       container.appendChild(b);
     }
   }
+
   function ensureBalloonsLayer() {
     root.style.position = root.style.position || "relative";
     if (!layers.balloons) {
@@ -136,21 +180,24 @@
     }
   }
 
-  /* ---------- Audio (Howler) ---------- */
+  // ---------------------------------------------------------------------------
+  // 6) Audio (Howler) — robust first-gesture unlock + persisted settings
+  // ---------------------------------------------------------------------------
   const AUDIO_BASE = "./assets/audio/";
   const readMuted = () => sessionStorage.getItem("muted") === "1";
   const writeMuted = (f) => sessionStorage.setItem("muted", f ? "1" : "0");
   const readBGM = () => sessionStorage.getItem("bgm") === "1";
   const writeBGM = (f) => sessionStorage.setItem("bgm", f ? "1" : "0");
 
+  // Reflect persisted state on buttons immediately (even before unlock)
   (() => {
     const m = readMuted();
     try {
       Howler?.mute?.(m);
     } catch {}
-    btnMute.textContent = m ? "🔇" : "🔊";
+    if (btnMute) btnMute.textContent = m ? "🔇" : "🔊";
     const on = readBGM();
-    btnBGM.setAttribute("aria-pressed", on ? "true" : "false");
+    if (btnBGM) btnBGM.setAttribute("aria-pressed", on ? "true" : "false");
   })();
 
   function withLoadError(howl, name) {
@@ -161,13 +208,21 @@
     } catch {}
     return howl;
   }
+
   const audio = {
     ready: false,
     muted: readMuted(),
     sfx: {},
     bgmHowl: null,
+
     unlock() {
       if (this.ready) return;
+
+      try {
+        Howler.autoSuspend = false;
+      } catch {}
+
+      // Ensure WebAudio context is running in the gesture
       try {
         if (
           typeof Howler !== "undefined" &&
@@ -175,14 +230,17 @@
           Howler.ctx.state !== "running"
         ) {
           Howler.autoUnlock = true;
-          try {
-            Howler.ctx.resume();
-          } catch {}
+          const p = Howler.ctx.resume?.();
+          if (p?.catch) p.catch(() => {});
         }
-        const src = (name) => [
-          `${AUDIO_BASE}${name}.mp3`,
-          `${AUDIO_BASE}${name}.ogg`,
-        ];
+      } catch {}
+
+      // Build sounds once
+      const src = (name) => [
+        `${AUDIO_BASE}${name}.mp3`,
+        `${AUDIO_BASE}${name}.ogg`,
+      ];
+      try {
         this.sfx.confirm = withLoadError(
           new Howl({ src: src("confirm"), volume: 0.9, preload: true }),
           "confirm"
@@ -213,27 +271,33 @@
           }),
           "bgm"
         );
-        try {
-          Howler.mute(this.muted);
-        } catch {}
-        btnMute.textContent = this.muted ? "🔇" : "🔊";
-        if (readBGM() && !this.muted) this.bgmHowl?.play();
-        this.ready = true;
       } catch {}
+
+      // Apply mute & maybe play BGM
+      try {
+        Howler.mute(this.muted);
+      } catch {}
+      if (btnMute) btnMute.textContent = this.muted ? "🔇" : "🔊";
+      if (readBGM() && !this.muted) this.bgmHowl?.play();
+
+      this.ready = true;
     },
-    play(n) {
-      if (this.ready && !this.muted) this.sfx[n]?.play();
+
+    play(name) {
+      if (this.ready && !this.muted) this.sfx[name]?.play();
     },
+
     toggleMute(force) {
       this.muted = typeof force === "boolean" ? force : !this.muted;
       try {
         Howler.mute(this.muted);
       } catch {}
       writeMuted(this.muted);
-      btnMute.textContent = this.muted ? "🔇" : "🔊";
+      if (btnMute) btnMute.textContent = this.muted ? "🔇" : "🔊";
       if (this.muted) this.bgmOff();
       else if (readBGM()) this.bgmOn();
     },
+
     bgmOn() {
       if (this.ready && !this.muted) this.bgmHowl?.play();
     },
@@ -242,21 +306,36 @@
     },
   };
 
-  ["pointerdown", "touchstart", "keydown", "click"].forEach((ev) => {
-    addEventListener(
-      ev,
-      (e) => {
-        if (ev === "keydown" && !(e.key === " " || e.key === "Enter")) return;
-        audio.unlock();
-      },
-      { once: true, passive: true }
-    );
-  });
-  btnMute.addEventListener("click", () => {
+  // First trusted gesture → unlock audio exactly once
+  let _audioBootstrapped = false;
+  function bootstrapAudioFromEvent() {
+    if (_audioBootstrapped) return;
+    _audioBootstrapped = true;
+
+    try {
+      if (typeof Howler !== "undefined" && Howler.ctx) {
+        Howler.autoUnlock = true;
+        const maybeResume = Howler.ctx.resume?.();
+        if (maybeResume?.catch) maybeResume.catch(() => {});
+      }
+    } catch {}
+
+    try {
+      audio.unlock();
+    } catch {}
+
+    window.removeEventListener("pointerdown", bootstrapAudioFromEvent, true);
+    window.removeEventListener("touchstart", bootstrapAudioFromEvent, true);
+  }
+  window.addEventListener("pointerdown", bootstrapAudioFromEvent, true);
+  window.addEventListener("touchstart", bootstrapAudioFromEvent, true);
+
+  // HUD audio controls
+  btnMute?.addEventListener("click", () => {
     audio.toggleMute();
     maybeAdvanceFromAudioSetup();
   });
-  btnBGM.addEventListener("click", () => {
+  btnBGM?.addEventListener("click", () => {
     audio.unlock();
     const next = btnBGM.getAttribute("aria-pressed") !== "true";
     btnBGM.setAttribute("aria-pressed", next ? "true" : "false");
@@ -268,6 +347,8 @@
     }
     maybeAdvanceFromAudioSetup();
   });
+
+  // Keep BGM alive on tab visibility toggles
   document.addEventListener("visibilitychange", () => {
     try {
       if (Howler?.ctx?.state === "suspended")
@@ -277,53 +358,55 @@
       if (readBGM() && !audio.muted && !audio.bgmHowl?.playing()) audio.bgmOn();
     }
   });
+
+  function isAudioReady() {
+    return !audio.muted && readBGM();
+  }
   function maybeAdvanceFromAudioSetup() {
-    // auto lanjut kalau lagi di gate & keduanya ON
     if (game.currentName === "AudioSetup" && isAudioReady()) {
-      // kecilkan efek dramatis sedikit
       confettiBurst("mini");
       audio.play("confirm");
       game.completeCurrent?.();
-      // tiles supaya terasa mulai game
       game.setScene("Intro", "tiles");
     }
   }
 
-  const vibe = (ms) => navigator.vibrate && navigator.vibrate(ms);
-  // Block text selection on the hold button as a safety net
+  // Avoid accidental text selections on the hold button (extra safety)
   document.addEventListener(
     "selectstart",
     (e) => {
-      if (e.target.closest(".hold")) e.preventDefault();
+      if (safeClosest(e.target, ".hold")) e.preventDefault();
     },
     { passive: false }
   );
 
-  /* ---------- Transitions (strict) ---------- */
+  const vibe = (ms) => navigator.vibrate && navigator.vibrate(ms);
+
+  // ---------------------------------------------------------------------------
+  // 7) Transitions (iris/tiles) with reduced-motion fallback
+  // ---------------------------------------------------------------------------
   const IRIS_MS = prefersReduced ? 220 : 1600;
   const TILES_MS = prefersReduced ? 220 : 1400;
 
   function tilesTransition(cb) {
-    if (!fxTiles) {
-      cb?.();
-      return;
-    }
+    if (!fxTiles) return void cb?.();
+
     const dur = TILES_MS;
     fxTiles.style.setProperty("--dur", `${dur}ms`);
     fxTiles.innerHTML = "";
 
-    // Responsif: jumlah tile berdasarkan ukuran root
+    // Grid size based on scene size
     const W = root.clientWidth || innerWidth;
     const H = root.clientHeight || innerHeight;
     const cols = Math.max(10, Math.round(W / 80));
     const rows = Math.max(8, Math.round(H / 80));
     fxTiles.style.gridTemplateColumns = `repeat(${cols},1fr)`;
-    const total = cols * rows;
 
+    const total = cols * rows;
     let maxDelay = 0;
     for (let i = 0; i < total; i++) {
       const t = document.createElement("i");
-      const delay = ((i % cols) + Math.floor(i / cols)) * (dur / total); // wave diagonal
+      const delay = ((i % cols) + Math.floor(i / cols)) * (dur / total); // diagonal wave
       if (delay > maxDelay) maxDelay = delay;
       t.style.animationDelay = `${delay}ms`;
       t.style.animationDuration = `${dur}ms`;
@@ -347,10 +430,8 @@
   }
 
   function irisTransition(cb) {
-    if (!fxIris) {
-      cb?.();
-      return;
-    }
+    if (!fxIris) return void cb?.();
+
     const dur = IRIS_MS;
     fxIris.style.setProperty("--iris-dur", `${dur}ms`);
     const prev = fxIris.style.transition;
@@ -360,6 +441,7 @@
     fxIris.classList.add("active");
     void fxIris.offsetWidth;
     fxIris.style.transition = prev;
+
     setTimeout(() => {
       try {
         cb?.();
@@ -368,11 +450,9 @@
     }, dur);
   }
 
-  function isAudioReady() {
-    return !audio.muted && readBGM();
-  }
-
-  /* ---------- Scene Manager ---------- */
+  // ---------------------------------------------------------------------------
+  // 8) Scene Manager
+  // ---------------------------------------------------------------------------
   const game = {
     scenes: {},
     current: null,
@@ -392,9 +472,8 @@
     _isTransitioning: false,
 
     setScene(name, effect = "auto") {
-      abortTyping(); // hentikan semua ketikan & SFX type yang tertunda
-      if (this._isTransitioning) return;
-      if (name === this.currentName) return;
+      abortTyping(); // kill any typing & type SFX in-flight
+      if (this._isTransitioning || name === this.currentName) return;
 
       const pick = (() => {
         if (prefersReduced) return "none";
@@ -413,11 +492,14 @@
         this.currentName = name;
         const el = this.current.enter();
         layers.stage.appendChild(el);
+
+        // Focus something meaningful quickly (no scroll)
         setTimeout(() => {
           layers.stage
             .querySelector("h1,h2,button,[tabindex]")
             ?.focus?.({ preventScroll: true });
         }, 0);
+
         starCountEl.textContent = Math.min(8, this.progress.size).toString();
         this._isTransitioning = false;
         this._started = true;
@@ -428,29 +510,46 @@
       else if (pick === "iris") irisTransition(go);
       else go();
     },
+
     completeCurrent() {
       if (this.currentName) this.progress.add(this.currentName);
       starCountEl.textContent = Math.min(8, this.progress.size).toString();
     },
+
     next() {
       const i = this.order.indexOf(this.currentName);
       this.setScene(this.order[i + 1] || "Outro");
     },
+
     prev() {
       const i = this.order.indexOf(this.currentName);
       this.setScene(this.order[i - 1] || "Intro");
     },
   };
 
-  /* ---------- Typewriter ---------- */
+  // ---------------------------------------------------------------------------
+  // 9) Typewriter system (with global abort)
+  // ---------------------------------------------------------------------------
+  let TYPE_ABORT = 0; // increment to cancel all pending ticks
+
+  function abortTyping() {
+    TYPE_ABORT++;
+    try {
+      audio.sfx.type?.stop();
+    } catch {}
+  }
+
+  // fine-grain tick typing (smart pauses)
   function typeText(el, text, base = 46, done) {
-    const token = TYPE_ABORT; // << token snapshot
-    let i = 0,
-      skipping = false,
-      timer = 0;
+    const token = TYPE_ABORT;
+    let i = 0;
+    let skipping = false;
+    let timer = 0;
+
     el.textContent = "";
     el.__typingActive = true;
     el.classList.add("typing");
+
     const skip = () => {
       if (!el.__typingActive) return;
       skipping = true;
@@ -462,14 +561,16 @@
       el.removeEventListener("touchstart", skip);
       done?.();
     };
+
     el.addEventListener("click", skip, { passive: true });
     el.addEventListener("touchstart", skip, { passive: true });
+
     const tick = () => {
-      if (TYPE_ABORT !== token) return; // << batal total
-      if (skipping) return;
+      if (TYPE_ABORT !== token || skipping) return;
       const ch = text[i++];
       el.textContent += ch;
       if (i === 1) audio.play("type");
+
       if (i < text.length) {
         let d = base;
         const next3 = text.slice(i - 1, i + 2);
@@ -488,6 +589,16 @@
     };
     tick();
   }
+
+  const sleep = (ms) =>
+    new Promise((r) => {
+      const token = TYPE_ABORT;
+      setTimeout(() => {
+        if (TYPE_ABORT === token) r();
+      }, ms);
+    });
+
+  // helper for titling + optional subtitle with pause
   const INTRO_PAUSE = prefersReduced ? 120 : 650;
   function typeTitle(
     box,
@@ -495,13 +606,12 @@
   ) {
     return new Promise((resolve) => {
       const h = box.querySelector("h1,h2");
-      if (!h) {
-        resolve();
-        return;
-      }
+      if (!h) return resolve();
+
       const titleText = h.textContent;
       h.textContent = "";
       h.classList.add("typing");
+
       if (!subEl) {
         typeText(h, titleText, titleSpeed, () => {
           h.classList.remove("typing");
@@ -509,6 +619,7 @@
         });
         return;
       }
+
       const subText = subEl.textContent;
       subEl.textContent = "";
       typeText(h, titleText, titleSpeed, () => {
@@ -524,28 +635,14 @@
     });
   }
 
-  const sleep = (ms) =>
-    new Promise((r) => {
-      const token = TYPE_ABORT;
-      setTimeout(() => {
-        if (TYPE_ABORT === token) r();
-      }, ms);
-    });
-  // ---- Abort controller untuk semua animasi ketik ----
-  let TYPE_ABORT = 0;
-  function abortTyping() {
-    TYPE_ABORT++;
-    try {
-      audio.sfx.type?.stop();
-    } catch {}
-  }
+  // tiny helper: type a whole string at fixed speed
   const typeInto = (el, text, speed = 42) =>
     new Promise((res) => {
-      const token = TYPE_ABORT; // << token snapshot
+      const token = TYPE_ABORT;
       el.textContent = "";
       let i = 0;
       const tick = () => {
-        if (TYPE_ABORT !== token) return; // << batal total
+        if (TYPE_ABORT !== token) return;
         if (i === 0) audio.play("type");
         el.textContent += text[i++];
         if (i < text.length) setTimeout(tick, speed);
@@ -554,6 +651,7 @@
       tick();
     });
 
+  // progressively reveal quiz options (badge → label)
   async function typeQuizOptions(
     list,
     {
@@ -570,27 +668,33 @@
       li.style.pointerEvents = "none";
       li.inert = true;
     });
+
     for (const li of items) {
-      if (TYPE_ABORT !== token) return; // << batalkan sisanya
-      const btn = li.querySelector(".opt"),
-        badge = btn.querySelector(".badge"),
-        label = btn.querySelector("span:last-child");
-      const b = badge.textContent,
-        t = label.textContent;
+      if (TYPE_ABORT !== token) return;
+      const btn = li.querySelector(".opt");
+      const badge = btn.querySelector(".badge");
+      const label = btn.querySelector("span:last-child");
+      const b = badge.textContent;
+      const t = label.textContent;
+
       badge.textContent = "";
       label.textContent = "";
       li.style.opacity = "1";
+
       await typeInto(badge, b, badgeSpeed);
       await sleep(afterBadgeGap);
       if (TYPE_ABORT !== token) return;
       await typeInto(label, t, textSpeed);
+
       li.style.pointerEvents = "";
       li.inert = false;
       await sleep(gapBetween);
     }
   }
 
-  /* ---------- UI helpers ---------- */
+  // ---------------------------------------------------------------------------
+  // 10) UI helpers
+  // ---------------------------------------------------------------------------
   const ui = {
     box(title) {
       const wrap = document.createElement("div");
@@ -622,17 +726,20 @@
     },
   };
 
-  /* ---------- Scenes ---------- */
-  /* ---------- SCENE: Audio Setup (gate sebelum Intro) ---------- */
+  // ---------------------------------------------------------------------------
+  // 11) Scenes
+  // ---------------------------------------------------------------------------
+
+  // --- AUDIO SETUP (gate before Intro) ----------------------------------------
   game.scenes.AudioSetup = {
     _timer: 0,
     enter() {
-      // highlight tombol HUD
-      btnMute.classList.add("highlight");
-      btnBGM.classList.add("highlight");
+      btnMute?.classList.add("highlight");
+      btnBGM?.classList.add("highlight");
 
       const box = ui.box("Sound Check");
       box.classList.add("audio-setup");
+
       const sub = ui.p("Please enable sound & music to get the full vibe ✨");
       sub.style.opacity = ".8";
       sub.style.textAlign = "center";
@@ -656,9 +763,7 @@
         status.innerHTML = ok
           ? '<span class="ok">Ready ✓ Sound ON + Music ON</span>'
           : '<span class="warn">Not ready • turn ON both</span>';
-        // auto lanjut kalau tiba-tiba sudah ON
         if (ok) {
-          // beri sedikit jeda biar user lihat status berubah → lanjut
           clearInterval(this._timer);
           this._timer = 0;
           setTimeout(() => maybeAdvanceFromAudioSetup(), 350);
@@ -666,15 +771,13 @@
       };
       update();
       this._timer = setInterval(update, 300);
-
       return box;
     },
     exit() {
       clearInterval(this._timer);
       this._timer = 0;
-      // lepas highlight
-      btnMute.classList.remove("highlight");
-      btnBGM.classList.remove("highlight");
+      btnMute?.classList.remove("highlight");
+      btnBGM?.classList.remove("highlight");
     },
     onA() {
       if (isAudioReady()) {
@@ -682,18 +785,17 @@
         audio.play("confirm");
         game.setScene("Intro", "tiles");
       } else {
-        // getar + fokuskan user untuk klik HUD
         vibe(30);
-        btnMute.classList.add("highlight");
-        btnBGM.classList.add("highlight");
+        btnMute?.classList.add("highlight");
+        btnBGM?.classList.add("highlight");
       }
     },
     onB() {
-      // Tidak ada back; beri vibra kecil sebagai feedback
       vibe(15);
     },
   };
-  /* ---------- SCENE: Intro ---------- */
+
+  // --- INTRO -------------------------------------------------------------------
   game.scenes.Intro = {
     enter() {
       const box = ui.box("Happy Birthday, Natasya!");
@@ -702,11 +804,12 @@
       box.appendChild(sub);
 
       const h = box.querySelector("h1");
-      const titleText = h.textContent,
-        subText = sub.textContent;
+      const titleText = h.textContent;
+      const subText = sub.textContent;
       h.textContent = "";
       sub.textContent = "";
       h.classList.add("typing");
+
       typeText(h, titleText, 58, () => {
         h.classList.remove("typing");
         setTimeout(() => {
@@ -729,6 +832,7 @@
     onB() {},
   };
 
+  // --- QUIZ --------------------------------------------------------------------
   const QUIZ = [
     {
       q: "“When we celebrate a win, what do we reach for first?”",
@@ -765,6 +869,8 @@
   game.scenes.Quiz = {
     idx: 0,
     _onClick: null,
+    locked: false,
+
     build() {
       const box = ui.box("Quiz Time!");
       const wrap = document.createElement("div");
@@ -776,6 +882,7 @@
       list.setAttribute("role", "list");
       const letters = ["A", "B", "C", "D"];
       const frag = document.createDocumentFragment();
+
       QUIZ[this.idx].a.forEach((txt, k) => {
         const li = document.createElement("li");
         const btn = document.createElement("button");
@@ -786,6 +893,7 @@
         li.appendChild(btn);
         frag.appendChild(li);
       });
+
       list.appendChild(frag);
       box.appendChild(wrap);
 
@@ -802,41 +910,50 @@
           });
         });
       });
+
       return box;
     },
+
     enter() {
       this.idx = 0;
+      this.locked = false;
       const el = this.build();
+
       this._onClick = (e) => {
-        const btn = e.target.closest?.(".opt");
+        const btn = safeClosest(e.target, ".opt");
         if (!btn || this.locked) return;
-        // Stop all in-flight typing (badge/label B, C, D) so the next question won't double SFX
+
+        // Prevent SFX carry-over to next question
         abortTyping();
+
         const k = Number(btn.dataset.index);
         if (k === 0) {
           this.locked = true;
           const praise = QUIZ[this.idx]?.praise || "Nice!";
           audio.play("confirm");
           vibe(10);
+
           $$(".opt", root).forEach((o) => {
             o.disabled = true;
             o.inert = true;
             o.classList.toggle("correct", o === btn);
             o.classList.remove("wrong");
           });
-          const card = $(".ui-box", root),
-            title = $(".ui-box h1", root);
+
+          const card = $(".ui-box", root);
+          const title = $(".ui-box h1", root);
           const d = document.createElement("div");
           d.className = "dialog praise";
           const p = document.createElement("div");
           d.appendChild(p);
           card.replaceChildren(title, d);
+
           typeText(p, praise, 46, () => {
             setTimeout(() => {
               this.idx++;
               this.locked = false;
               if (this.idx < QUIZ.length) {
-                abortTyping(); // guard: clear any pending timers before rebuilding next question
+                abortTyping();
                 card.replaceWith(this.build());
               } else {
                 const finCard = ui.box("Nice!");
@@ -862,7 +979,7 @@
             }, 620);
           });
         } else {
-          abortTyping(); // kill any ongoing typing SFX for the current question
+          abortTyping();
           audio.play("cancel");
           vibe(35);
           root.classList.add("shake");
@@ -871,13 +988,16 @@
           setTimeout(() => btn.classList.remove("wrong"), 360);
         }
       };
+
       root.addEventListener("click", this._onClick);
       return el;
     },
+
     exit() {
       root.removeEventListener("click", this._onClick);
       this._onClick = null;
     },
+
     onA() {},
     onB() {
       if (this.idx === 0) game.setScene("Intro");
@@ -888,7 +1008,7 @@
     },
   };
 
-  /* BALLOONS */
+  // --- BALLOONS ----------------------------------------------------------------
   const BALLOON_MSGS = [
     "Aku suka caramu menenangkan aku.",
     "Terima kasih sudah sabar sama kekuranganku.",
@@ -900,21 +1020,28 @@
     "Aku selalu dukung kamu.",
   ];
   const balloonSVG = (c) =>
-    `<svg class="balloon-svg" viewBox="0 0 80 110" aria-hidden="true"><ellipse cx="40" cy="40" rx="26" ry="32" fill="${c}" stroke="#ff9bb0" stroke-width="3"/><path d="M40 68 L36 74 L44 74 Z" fill="${c}"/><path d="M40 74 C 40 90, 46 96, 40 110" stroke="#caa" stroke-width="2" fill="none"/></svg>`;
+    `<svg class="balloon-svg" viewBox="0 0 80 110" aria-hidden="true">
+      <ellipse cx="40" cy="40" rx="26" ry="32" fill="${c}" stroke="#ff9bb0" stroke-width="3"/>
+      <path d="M40 68 L36 74 L44 74 Z" fill="${c}"/>
+      <path d="M40 74 C 40 90, 46 96, 40 110" stroke="#caa" stroke-width="2" fill="none"/>
+    </svg>`;
 
   game.scenes.Balloons = {
     popped: 0,
     listeners: [],
     ro: null,
     onResize: null,
+
     enter() {
       this.popped = 0;
+
       const box = ui.box("Pop the Balloons!");
       const hint = ui.p("Tap balloons to reveal messages 💬");
       box.appendChild(hint);
       box.style.height = "100%";
       box.style.display = "flex";
       box.style.flexDirection = "column";
+
       const grid = document.createElement("div");
       grid.className = "grid";
       grid.style.flex = "1";
@@ -926,6 +1053,7 @@
         tile.innerHTML =
           balloonSVG(i % 2 ? "var(--color-3)" : "var(--color-2)") +
           `<span class="dialog">${msg}</span>`;
+
         const onClick = () => {
           const sv = $("svg", tile);
           sv.classList.add("pop");
@@ -936,6 +1064,7 @@
             tile.classList.add("show-msg");
           }, 220);
           tile.disabled = true;
+
           if (++this.popped === BALLOON_MSGS.length) {
             setTimeout(() => {
               confettiBurst("mini");
@@ -944,6 +1073,7 @@
             }, 520);
           }
         };
+
         tile.addEventListener("click", onClick);
         this.listeners.push({ el: tile, fn: onClick });
         grid.appendChild(tile);
@@ -951,6 +1081,7 @@
 
       box.appendChild(grid);
 
+      // Responsive tile sizing
       const layout = () => {
         const cols = root.clientWidth >= 520 ? 4 : 2;
         grid.style.setProperty("--cols", cols);
@@ -964,6 +1095,7 @@
         );
         grid.style.setProperty("--tile", tile + "px");
       };
+
       this.ro = new ResizeObserver(layout);
       this.ro.observe(root);
       this.onResize = () => layout();
@@ -973,6 +1105,7 @@
       typeTitle(box, { subEl: hint, titleSpeed: 54, subSpeed: 46 });
       return box;
     },
+
     exit() {
       this.listeners.forEach(({ el, fn }) =>
         el.removeEventListener("click", fn)
@@ -985,13 +1118,14 @@
         this.onResize = null;
       }
     },
+
     onA() {},
     onB() {
       game.setScene("Quiz");
     },
   };
 
-  /* CANDLE */
+  // --- CANDLE -------------------------------------------------------------------
   game.scenes.Candle = {
     holding: false,
     raf: 0,
@@ -999,21 +1133,30 @@
     holdEl: null,
     barEl: null,
     flameEl: null,
+
     enter() {
       const box = ui.box("Make a Wish ✨");
       const sub = ui.p("Hold the button to blow the candle.");
       sub.style.textAlign = "center";
       sub.style.opacity = ".75";
-      sub.style.marginBottom = "clamp(10px, 2.5vmin, 18px)"; // <— jarak ke cake
+      sub.style.marginBottom = "clamp(10px, 2.5vmin, 18px)"; // spacing to cake
       box.appendChild(sub);
+
       const cake = document.createElement("div");
       cake.className = "cake";
-      cake.innerHTML = `<div class="cake-visual">
-          <div class="flame" id="flame"></div><div class="wick"></div><div class="candle"></div><div class="cake-body"></div><div class="cake-plate"></div>
+      cake.innerHTML = `
+        <div class="cake-visual">
+          <div class="flame" id="flame"></div>
+          <div class="wick"></div>
+          <div class="candle"></div>
+          <div class="cake-body"></div>
+          <div class="cake-plate"></div>
         </div>
         <button class="hold" id="hold">Press & Hold</button>
-        <div class="progress"><i id="bar"></i></div>`;
+        <div class="progress"><i id="bar"></i></div>
+      `;
       box.appendChild(cake);
+
       this.holdEl = $("#hold", cake);
       this.barEl = $("#bar", cake);
       this.flameEl = $("#flame", cake);
@@ -1022,11 +1165,13 @@
         if (this.holding) return;
         this.holding = true;
         audio.play("flame");
+
         const t0 = performance.now();
         const step = (now) => {
           if (!this.holding) return;
           const pct = Math.min(1, (now - t0) / this.holdMs);
           this.barEl.style.width = `${pct * 100}%`;
+
           if (pct >= 1) {
             this.holding = false;
             this.barEl.style.width = "100%";
@@ -1045,11 +1190,13 @@
         };
         this.raf = requestAnimationFrame(step);
       };
+
       const stop = () => {
         this.holding = false;
         cancelAnimationFrame(this.raf);
         this.barEl.style.width = "0%";
       };
+
       this.holdEl.addEventListener("pointerdown", start);
       this.holdEl.addEventListener("pointerup", stop);
       this.holdEl.addEventListener("pointerleave", stop);
@@ -1057,17 +1204,19 @@
       typeTitle(box, { subEl: sub, titleSpeed: 54, subSpeed: 46 });
       return box;
     },
+
     exit() {
       cancelAnimationFrame(this.raf);
       if (this.holdEl) this.holdEl.replaceWith(this.holdEl.cloneNode(true));
     },
+
     onA() {},
     onB() {
       game.setScene("Balloons");
     },
   };
 
-  /* MEMORIES — 8-bit slideshow */
+  // --- MEMORIES (8-bit slideshow) ----------------------------------------------
   game.scenes.Memories = {
     idx: 0,
     imgs: [
@@ -1080,6 +1229,7 @@
       "https://picsum.photos/seed/pastel7/800/600",
       "https://picsum.photos/seed/pastel8/800/600",
     ],
+
     enter() {
       const box = ui.box("Memories");
       const sub = ui.p("Swipe ◀ ▶ or tap the arrows");
@@ -1089,12 +1239,20 @@
 
       const wrap = document.createElement("div");
       wrap.className = "ss-wrap";
-      wrap.innerHTML = `<div class="ss-stage pixel-border"><img alt="Memory"/><button class="ss-nav prev" aria-label="Previous">◀</button><button class="ss-nav next" aria-label="Next">▶</button></div><div class="ss-dots" role="tablist" aria-label="Slides"></div>`;
-      const stage = $(".ss-stage", wrap),
-        img = $("img", wrap),
-        prevBtn = $(".prev", wrap),
-        nextBtn = $(".next", wrap),
-        dots = $(".ss-dots", wrap);
+      wrap.innerHTML = `
+        <div class="ss-stage pixel-border">
+          <img alt="Memory"/>
+          <button class="ss-nav prev" aria-label="Previous">◀</button>
+          <button class="ss-nav next" aria-label="Next">▶</button>
+        </div>
+        <div class="ss-dots" role="tablist" aria-label="Slides"></div>
+      `;
+
+      const stage = $(".ss-stage", wrap);
+      const img = $("img", wrap);
+      const prevBtn = $(".prev", wrap);
+      const nextBtn = $(".next", wrap);
+      const dots = $(".ss-dots", wrap);
 
       const makeDots = () => {
         dots.innerHTML = "";
@@ -1107,6 +1265,7 @@
           dots.appendChild(b);
         }
       };
+
       this.update = () => {
         img.src = this.imgs[this.idx];
         img.onerror = () => (img.src = "https://picsum.photos/800/600?blur=1");
@@ -1114,20 +1273,22 @@
           d.setAttribute("aria-selected", String(i === this.idx))
         );
       };
+
       this.go = (i, play = true) => {
         const n = this.imgs.length;
         const next = ((i % n) + n) % n;
         if (next !== this.idx && play) {
-          audio.play("confirm"); // bunyi klik/geser
-          vibe(8); // getaran kecil (kalau ada)
+          audio.play("confirm");
+          vibe(8);
         }
         this.idx = next;
         this.update();
       };
+
       prevBtn.addEventListener("click", () => this.go(this.idx - 1));
       nextBtn.addEventListener("click", () => this.go(this.idx + 1));
 
-      // swipe
+      // basic swipe
       let x0 = 0,
         dx = 0,
         sw = false;
@@ -1162,10 +1323,10 @@
       makeDots();
       this.update();
 
-      const aHint = ui.hint("Tap A to continue");
-      box.appendChild(aHint);
+      box.appendChild(ui.hint("Tap A to continue"));
       return box;
     },
+
     exit() {},
     onA() {
       game.completeCurrent();
@@ -1177,18 +1338,21 @@
     },
   };
 
-  /* MESSAGE — reveal hint after finished typing */
+  // --- MESSAGE -----------------------------------------------------------------
   const MSG = [
     "Another year, another chance to tell you how wildly treasured you are.",
     "You chase your dreams with a brave heart and still make space for softness.",
     "Here’s to more laughter, more adventures, and more love around our days.",
   ];
+
   game.scenes.Message = {
     box: null,
     content: null,
     index: 0,
+
     enter() {
       this.index = 0;
+
       const head = document.createElement("div");
       head.className = "ui-box";
       const h = document.createElement("h2");
@@ -1200,11 +1364,14 @@
 
       const wrap = document.createElement("div");
       wrap.className = "msg-wrap";
+
       this.box = document.createElement("div");
       this.box.className = "msg-box ui-box";
+
       this.content = document.createElement("div");
       this.content.className = "msg-content";
       this.box.appendChild(this.content);
+
       wrap.append(head, this.box);
 
       const note = ui.p("Tap A to continue");
@@ -1213,9 +1380,9 @@
       note.style.transition = "opacity .25s linear";
       wrap.appendChild(note);
 
-      const REVEAL_DELAY = prefersReduced ? 200 : 900; // jeda setelah "A letter for you…"
-      const MSG_TYPE_SPEED = 58; // lebih pelan dari 46
-      const PARA_GAP = prefersReduced ? 160 : 280; // jeda antar paragraf
+      const REVEAL_DELAY = prefersReduced ? 200 : 900; // gap after “A letter for you…”
+      const MSG_TYPE_SPEED = 58; // slower than default 46
+      const PARA_GAP = prefersReduced ? 160 : 280;
 
       const typeAll = () =>
         new Promise((res) => {
@@ -1232,13 +1399,14 @@
 
       typeTitle(head, { subEl: sub, titleSpeed: 54, subSpeed: 46 }).then(
         async () => {
-          await sleep(REVEAL_DELAY); // jeda setelah "A letter for you…"
+          await sleep(REVEAL_DELAY);
           await typeAll();
           requestAnimationFrame(() => (note.style.opacity = "1"));
         }
       );
       return wrap;
     },
+
     exit() {},
     onA() {
       confettiBurst("mini");
@@ -1250,7 +1418,7 @@
     },
   };
 
-  /* GIFT */
+  // --- GIFT --------------------------------------------------------------------
   game.scenes.Gift = {
     enter() {
       const box = ui.box("A little gift");
@@ -1258,6 +1426,7 @@
       sub.style.textAlign = "center";
       sub.style.opacity = ".75";
       box.appendChild(sub);
+
       const frame = document.createElement("div");
       frame.className = "ui-box";
       frame.style.display = "grid";
@@ -1265,6 +1434,7 @@
       frame.style.width = "min(420px,90%)";
       frame.style.aspectRatio = "3/2";
       frame.style.background = "var(--color-2)";
+
       const img = new Image();
       img.alt = "Love card";
       img.src = "https://picsum.photos/seed/lovecard/960/640";
@@ -1274,18 +1444,20 @@
       img.style.maxWidth = "100%";
       img.style.maxHeight = "100%";
       frame.appendChild(img);
+
       const row = document.createElement("div");
       row.style.display = "flex";
       row.style.justifyContent = "center";
       row.style.gap = "10px";
       row.style.marginTop = "10px";
+
       const btnSave = ui.btn("Download PNG");
       const btnGo = ui.btn("Grand Finale →");
+
       btnSave.addEventListener("click", () => {
-        // Buka gambar di tab baru; user bisa Save As dari browser
+        // open in new tab; user can Save As
         const w = window.open(img.src, "_blank", "noopener,noreferrer");
         if (!w) {
-          // Fallback kalau popup diblokir
           const a = document.createElement("a");
           a.href = img.src;
           a.target = "_blank";
@@ -1293,14 +1465,17 @@
           a.click();
         }
       });
+
       btnGo.addEventListener("click", () => {
         confettiBurst("finale");
         audio.play("confirm");
         game.completeCurrent();
         setTimeout(() => game.setScene("Outro"), 700);
       });
+
       row.append(btnSave, btnGo);
       box.append(frame, row);
+
       typeTitle(box, { subEl: sub, titleSpeed: 54, subSpeed: 46 });
       return box;
     },
@@ -1314,7 +1489,7 @@
     },
   };
 
-  /* OUTRO */
+  // --- OUTRO -------------------------------------------------------------------
   game.scenes.Outro = {
     enter() {
       const box = document.createElement("div");
@@ -1328,19 +1503,19 @@
       );
 
       const btn = ui.btn("Restart");
-      btn.classList.add("outro-btn"); // <- hidden + gap
+      btn.classList.add("outro-btn");
       btn.addEventListener("click", () => {
         game.progress.clear();
         starCountEl.textContent = "0";
         confettiBurst("mini");
-        game.setScene("Intro"); // opening pakai iris auto
+        game.setScene("Intro");
       });
 
       box.append(h, p, btn);
 
-      // Ketik judul -> paragraf, lalu REVEAL tombol
+      // Type title → paragraph; reveal button after
       typeTitle(box, { subEl: p, titleSpeed: 54, subSpeed: 46 }).then(() => {
-        requestAnimationFrame(() => btn.classList.add("show")); // muncul setelah selesai
+        requestAnimationFrame(() => btn.classList.add("show"));
       });
 
       return box;
@@ -1354,137 +1529,38 @@
     },
   };
 
-  /* Controls */
-  btnA.addEventListener("click", () => {
+  // ---------------------------------------------------------------------------
+  // 12) HUD Controls
+  // ---------------------------------------------------------------------------
+  btnA?.addEventListener("click", () => {
     audio.play("confirm");
     game.current?.onA?.();
   });
-  btnB.addEventListener("click", () => {
+  btnB?.addEventListener("click", () => {
     audio.play("cancel");
     game.current?.onB?.();
   });
 
-  /* Init */
-  /* ---------- COACH / FIRST-RUN TUTORIAL ---------- */
+  // ---------------------------------------------------------------------------
+  // 13) First-run Coach Overlay (dims SCENE only, HUD/FOOTER stay usable)
+  // ---------------------------------------------------------------------------
   const coach = (() => {
-    let overlay, tip, ringEl, focusRing;
+    let overlay,
+      tip,
+      _rafFocus = 0;
     const LS_KEY = "coach_done_v1";
-
-    // helper: buat beep universal (pakai Howler jika ada, fallback oscillator)
-    // ===== Coach helpers (DROP-IN REPLACE) =====
-    function coachApplyExempt(on = true) {
-      const ids = ["btnMute", "btnBGM"]; // tambah "starCount" kalau mau ★ ikut non-blur
-      ids.forEach((id) => {
-        const el = document.getElementById(id);
-        if (el) el.classList.toggle("coach-exempt", on);
-      });
-    }
-
-    function coachSetTip({ title = "", body = "", actions = [] }) {
-      const tip = document.getElementById("coachTip");
-      if (!tip) return;
-      tip.innerHTML = `
-    <h3>${title}</h3>
-    <p>${body}</p>
-    <div class="coach-actions">
-      ${actions
-        .map(
-          (a) =>
-            `<button class="coach-btn" data-act="${a.act}">${a.label}</button>`
-        )
-        .join("")}
-    </div>
-  `;
-    }
-
-    function coachBindActions(map = {}) {
-      document.querySelectorAll(".coach-btn").forEach((b) => {
-        b.onclick = (e) => {
-          const act = e.currentTarget.getAttribute("data-act");
-          map[act]?.();
-        };
-      });
-    }
-
-    function coachShow() {
-      document.getElementById("coach")?.classList.remove("coach-hidden");
-      coachApplyExempt(true);
-    }
-    function coachHide() {
-      document.getElementById("coach")?.classList.add("coach-hidden");
-      coachApplyExempt(false);
-    }
-
-    function coachFocusTo(el) {
-      const ring = document.querySelector(".coach-focus-ring");
-      if (!ring || !el) return;
-      const r = el.getBoundingClientRect();
-      ring.style.left = `${r.left - 6}px`;
-      ring.style.top = `${r.top - 6}px`;
-      ring.style.width = `${r.width + 12}px`;
-      ring.style.height = `${r.height + 12}px`;
-    }
-    function startCoach() {
-      // STEP 1: Enable Sound
-      coachSetTip({
-        title: "Enable Sound",
-        body: "Tap 🔊 to unmute. Try a short beep.",
-        actions: [
-          { act: "test", label: "Play test beep" },
-          { act: "next", label: "Continue" },
-          { act: "skip", label: "Skip" },
-        ],
-      });
-      coachBindActions({
-        test() {
-          audio.unlock?.();
-          audio.play?.("type");
-        },
-        next() {
-          coachStepMusic();
-        },
-        skip() {
-          coachHide();
-          game.setScene("Intro", "iris");
-        },
-      });
-      coachShow();
-      coachFocusTo(document.getElementById("btnMute"));
-    }
-
-    function coachStepMusic() {
-      coachSetTip({
-        title: "Background Music",
-        body: "Tap ♫ to start/stop the BGM.",
-        actions: [
-          { act: "toggle", label: "Play/Pause" },
-          { act: "start", label: "Start" },
-        ],
-      });
-      coachBindActions({
-        toggle() {
-          document.getElementById("btnBGM")?.click();
-        },
-        start() {
-          coachHide();
-          game.setScene("Intro", "iris");
-        },
-      });
-      coachShow();
-      coachFocusTo(document.getElementById("btnBGM"));
-    }
 
     function playBeep(ms = 500) {
       try {
         audio.unlock?.();
-        // pakai SFX yang ada biar konsisten
         if (audio.ready && audio.sfx.confirm) {
           audio.sfx.confirm.play();
           return;
         }
       } catch {}
       try {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        const ctx = new Ctx();
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.type = "square";
@@ -1500,11 +1576,43 @@
       } catch {}
     }
 
-    // Buat overlay & elemen sekali
+    function coachSetTip({ title = "", body = "", actions = [] }) {
+      const tipEl = document.getElementById("coachTip");
+      if (!tipEl) return;
+      tipEl.innerHTML = `
+        <h3>${title}</h3>
+        <p>${body}</p>
+        <div class="coach-actions">
+          ${actions
+            .map(
+              (a) =>
+                `<button class="coach-btn" data-act="${a.act}">${a.label}</button>`
+            )
+            .join("")}
+        </div>
+      `;
+    }
+
+    function coachBindActions(map = {}) {
+      document.querySelectorAll(".coach-btn").forEach((b) => {
+        b.onclick = (e) => {
+          const act = e.currentTarget.getAttribute("data-act");
+          map[act]?.();
+        };
+      });
+    }
+
+    function coachShow() {
+      document.getElementById("coach")?.classList.remove("coach-hidden");
+    }
+    function coachHide() {
+      document.getElementById("coach")?.classList.add("coach-hidden");
+    }
+
     function ensureOverlay() {
       if (overlay) return;
 
-      // 1) Scene-only overlay (dims scene so HUD/FOOTER stay clean)
+      // 1) Scene-only overlay
       overlay = document.createElement("div");
       overlay.className = "coach-overlay coach-hidden";
       overlay.setAttribute("role", "dialog");
@@ -1513,24 +1621,22 @@
       const wrap = document.createElement("div");
       wrap.className = "coach-wrap";
 
-      const arr = document.createElement("i");
-      arr.className = "coach-arrow";
-
       tip = document.createElement("div");
       tip.className = "coach-tip pixel-border";
       tip.id = "coachTip";
 
-      wrap.append(arr, tip);
+      wrap.append(tip);
       overlay.append(wrap);
-      // ⬇️ keep the dim/tip INSIDE the scene so only scene is dimmed
       root.appendChild(overlay);
 
-      // 2) Global focus ring OUTSIDE the scene so it's never clipped
-      focusRing = document.createElement("div");
-      focusRing.className = "coach-focus-ring";
-      focusRing.id = "coachRing";
-      focusRing.style.display = "none";
-      document.body.appendChild(focusRing); // ⬅️ important
+      // 2) Global focus ring outside the scene
+      if (!document.querySelector(".coach-focus-ring")) {
+        const focusRing = document.createElement("div");
+        focusRing.className = "coach-focus-ring";
+        focusRing.id = "coachRing";
+        focusRing.style.display = "none";
+        document.body.appendChild(focusRing);
+      }
 
       // ESC to skip
       window.addEventListener("keydown", (e) => {
@@ -1538,19 +1644,6 @@
         if (e.key === "Escape") finish(true);
       });
     }
-
-    function showOverlay() {
-      ensureOverlay();
-      overlay.classList.remove("coach-hidden");
-    }
-    function hideOverlay() {
-      if (overlay) overlay.classList.add("coach-hidden");
-    }
-
-    // REPLACE function placeFocus + trackFocus with this:
-
-    let _trackedEl = null;
-    let _rafFocus = 0;
 
     function placeFocus(box) {
       const ring = document.getElementById("coachRing");
@@ -1568,28 +1661,23 @@
     }
 
     function trackFocus(el) {
-      _trackedEl = el || null;
       cancelAnimationFrame(_rafFocus);
-
       const tick = () => {
-        if (_trackedEl && document.body.contains(_trackedEl)) {
-          placeFocus(_trackedEl);
-        }
+        if (el && document.body.contains(el)) placeFocus(el);
         _rafFocus = requestAnimationFrame(tick);
       };
       _rafFocus = requestAnimationFrame(tick);
 
-      const upd = () => placeFocus(_trackedEl);
-      // Keep in sync with common layout changes
-      window.addEventListener("resize", upd, { passive: true });
-      window.addEventListener("scroll", upd, { passive: true });
-      window.addEventListener("orientationchange", upd, { passive: true });
+      const upd = () => placeFocus(el);
+      addEventListener("resize", upd, { passive: true });
+      addEventListener("scroll", upd, { passive: true });
+      addEventListener("orientationchange", upd, { passive: true });
       if (window.visualViewport) {
         visualViewport.addEventListener("resize", upd, { passive: true });
         visualViewport.addEventListener("scroll", upd, { passive: true });
       }
     }
-    // Step content builders
+
     function stepRinger(next) {
       tip.innerHTML = `
         <h3>Turn on your Ring 🔔</h3>
@@ -1603,7 +1691,7 @@
       $("#coachBeep", tip).addEventListener("click", () => playBeep(500));
       $("#coachNext", tip).addEventListener("click", () => next());
       $("#coachSkip", tip).addEventListener("click", () => finish(true));
-      trackFocus(null); // no highlight on this step
+      trackFocus(null);
     }
 
     function stepUnmute(next) {
@@ -1617,7 +1705,6 @@
       $("#coachSkip", tip).addEventListener("click", () => next());
       trackFocus(btnMute);
 
-      // auto-advance when unmuted
       const advanceIfReady = () => {
         if (!audio.muted) {
           window.removeEventListener("click", check, true);
@@ -1663,6 +1750,14 @@
       trackFocus(null);
     }
 
+    function showOverlay() {
+      ensureOverlay();
+      overlay.classList.remove("coach-hidden");
+    }
+    function hideOverlay() {
+      overlay?.classList.add("coach-hidden");
+    }
+
     function finish(skipped = false) {
       cancelAnimationFrame(_rafFocus);
       _rafFocus = 0;
@@ -1671,7 +1766,6 @@
       try {
         localStorage.setItem(LS_KEY, skipped ? "skipped" : "done");
       } catch {}
-      // lanjut ke Intro kalau belum start
       if (!game._started && game.currentName !== "Intro") {
         game.setScene("Intro", "iris");
       }
@@ -1679,7 +1773,7 @@
 
     const steps = [stepRinger, stepUnmute, stepMusic, stepReady];
 
-    async function start() {
+    function start() {
       showOverlay();
       let i = 0;
       const next = () => {
@@ -1696,18 +1790,17 @@
         seen = localStorage.getItem(LS_KEY) || "";
       } catch {}
       if (!seen) start();
-      else {
-        // kalau sudah pernah, langsung mulai Intro normal
-        if (!game._started && game.currentName !== "Intro") {
-          game.setScene("Intro", "iris");
-        }
+      else if (!game._started && game.currentName !== "Intro") {
+        game.setScene("Intro", "iris");
       }
     }
 
-    // public API
     return { start, startIfNeeded, finish };
   })();
 
+  // ---------------------------------------------------------------------------
+  // 14) Bootstrap
+  // ---------------------------------------------------------------------------
   ensureBalloonsLayer();
   coach.startIfNeeded();
 })();
