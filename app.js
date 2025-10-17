@@ -392,6 +392,7 @@
     _isTransitioning: false,
 
     setScene(name, effect = "auto") {
+      abortTyping(); // hentikan semua ketikan & SFX type yang tertunda
       if (this._isTransitioning) return;
       if (name === this.currentName) return;
 
@@ -443,6 +444,7 @@
 
   /* ---------- Typewriter ---------- */
   function typeText(el, text, base = 46, done) {
+    const token = TYPE_ABORT; // << token snapshot
     let i = 0,
       skipping = false,
       timer = 0;
@@ -463,6 +465,7 @@
     el.addEventListener("click", skip, { passive: true });
     el.addEventListener("touchstart", skip, { passive: true });
     const tick = () => {
+      if (TYPE_ABORT !== token) return; // << batal total
       if (skipping) return;
       const ch = text[i++];
       el.textContent += ch;
@@ -521,12 +524,28 @@
     });
   }
 
-  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const sleep = (ms) =>
+    new Promise((r) => {
+      const token = TYPE_ABORT;
+      setTimeout(() => {
+        if (TYPE_ABORT === token) r();
+      }, ms);
+    });
+  // ---- Abort controller untuk semua animasi ketik ----
+  let TYPE_ABORT = 0;
+  function abortTyping() {
+    TYPE_ABORT++;
+    try {
+      audio.sfx.type?.stop();
+    } catch {}
+  }
   const typeInto = (el, text, speed = 42) =>
     new Promise((res) => {
+      const token = TYPE_ABORT; // << token snapshot
       el.textContent = "";
       let i = 0;
       const tick = () => {
+        if (TYPE_ABORT !== token) return; // << batal total
         if (i === 0) audio.play("type");
         el.textContent += text[i++];
         if (i < text.length) setTimeout(tick, speed);
@@ -544,6 +563,7 @@
       afterBadgeGap = 120,
     } = {}
   ) {
+    const token = TYPE_ABORT;
     const items = [...list.querySelectorAll("li")];
     items.forEach((li) => {
       li.style.opacity = "0";
@@ -551,6 +571,7 @@
       li.inert = true;
     });
     for (const li of items) {
+      if (TYPE_ABORT !== token) return; // << batalkan sisanya
       const btn = li.querySelector(".opt"),
         badge = btn.querySelector(".badge"),
         label = btn.querySelector("span:last-child");
@@ -561,6 +582,7 @@
       li.style.opacity = "1";
       await typeInto(badge, b, badgeSpeed);
       await sleep(afterBadgeGap);
+      if (TYPE_ABORT !== token) return;
       await typeInto(label, t, textSpeed);
       li.style.pointerEvents = "";
       li.inert = false;
@@ -788,6 +810,8 @@
       this._onClick = (e) => {
         const btn = e.target.closest?.(".opt");
         if (!btn || this.locked) return;
+        // Stop all in-flight typing (badge/label B, C, D) so the next question won't double SFX
+        abortTyping();
         const k = Number(btn.dataset.index);
         if (k === 0) {
           this.locked = true;
@@ -812,6 +836,7 @@
               this.idx++;
               this.locked = false;
               if (this.idx < QUIZ.length) {
+                abortTyping(); // guard: clear any pending timers before rebuilding next question
                 card.replaceWith(this.build());
               } else {
                 const finCard = ui.box("Nice!");
@@ -837,6 +862,7 @@
             }, 620);
           });
         } else {
+          abortTyping(); // kill any ongoing typing SFX for the current question
           audio.play("cancel");
           vibe(35);
           root.classList.add("shake");

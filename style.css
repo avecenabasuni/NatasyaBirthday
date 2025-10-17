@@ -244,6 +244,7 @@ a {
   align-items: center;
   gap: clamp(6px, 1.6vw, 10px);
   white-space: nowrap;
+  z-index: 400;
 }
 .hint-min .hitem b {
   font-weight: 700;
