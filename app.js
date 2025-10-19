@@ -65,6 +65,156 @@
     "#b9ffb3",
   ];
 
+  // ===== i18n / theming (drop-in) =====
+  const TEXT = {
+    vars: {
+      name: "Natasya", // ganti nama di sini sekali saja
+      starsTotal: 7,
+    },
+    global: {
+      brand: "🍰 {{name}}’s Day",
+      footer: {
+        confirm: "Confirm",
+        back: "Back",
+        swipe: "Swipe",
+        where: "where relevant",
+      },
+    },
+    audioSetup: {
+      title: "Sound Check",
+      sub: "Please enable sound & music to get the full vibe ✨",
+      steps: "1) Tap <b>🔊</b> to unmute<br/>2) Tap <b>♫</b> to start music",
+      ready: "Ready ✓ Sound ON + Music ON",
+      notReady: "Not ready • turn ON both",
+      hint: "Tap A to start once both are ON",
+    },
+    intro: {
+      title: "Happy Birthday, {{name}}!",
+      sub: "Tap A to begin your pastel 8-bit quest 💗",
+    },
+    quiz: {
+      title: "Quiz Time!",
+      items: [
+        {
+          q: "“When we celebrate a win, what do we reach for first?”",
+          a: [
+            "Cake and our favourite playlist",
+            "A polite congratulatory handshake",
+            "A stack of emails to answer",
+            "A round of chores to stay humble",
+          ],
+          praise: "Correct! 🎉 Celebrate like we mean it.",
+        },
+        {
+          q: "“Which word describes how you shine today?”",
+          a: [
+            "Radiant — glowing from the inside out",
+            "Sleepless — probably need a nap",
+            "Ordinary — nothing special happening",
+            "Invisible — hiding from the world",
+          ],
+          praise: "Radiant it is! ✨ Keep glowing.",
+        },
+        {
+          q: "“Where should our next adventure take us?”",
+          a: [
+            "Sunset picnic by a secret seaside",
+            "Back to spreadsheets and inboxes",
+            "A room with zero windows",
+            "No adventure — let’s stay put",
+          ],
+          praise: "Seaside sunsets, coming right up 🌅",
+        },
+      ],
+      finishTitle: "Nice!",
+      finishText: "You did it! Let’s pop some balloons…",
+    },
+    balloons: {
+      title: "Pop the Balloons!",
+      hint: "Tap balloons to reveal messages 💬",
+      messages: [
+        "Aku suka caramu menenangkan aku.",
+        "Terima kasih sudah sabar sama kekuranganku.",
+        "Kamu bikin hari biasa jadi spesial.",
+        "Tetap jadi kamu yang hangat ya.",
+        "Aku bangga sama growth kamu.",
+        "Semoga mimpi-mimpimu makin dekat.",
+        "You deserve all the gentle things.",
+        "Aku selalu dukung kamu.",
+      ],
+    },
+    candle: {
+      title: "Make a Wish ✨",
+      sub: "Hold the button to blow the candle.",
+      hold: "Press & Hold",
+      granted: "Wish granted!",
+    },
+    memories: {
+      title: "Memories",
+      sub: "Swipe ◀ ▶ or tap the arrows",
+      hintA: "Tap A to continue",
+      ariaPrev: "Previous",
+      ariaNext: "Next",
+    },
+    message: {
+      title: "Message",
+      sub: "A letter for you…",
+      paras: [
+        "Another year, another chance to tell you how wildly treasured you are.",
+        "You chase your dreams with a brave heart and still make space for softness.",
+        "Here’s to more laughter, more adventures, and more love around our days.",
+      ],
+      hintA: "Tap A to continue",
+    },
+    gift: {
+      title: "A little gift",
+      sub: "Save the card or continue to the finale.",
+      download: "Download PNG",
+      finale: "Grand Finale →",
+    },
+    outro: {
+      title: "Happy Birthday, {{name}}! 💖",
+      text: "May your days be soft, brave, and full of tiny victories.",
+      restart: "Restart",
+    },
+    coach: {
+      ring: {
+        title: "Turn on your Ring 🔔",
+        body: "Make sure your phone isn’t on Silent and media volume is up.",
+        test: "Test beep",
+        next: "Continue",
+        skip: "Skip",
+      },
+      unmute: {
+        title: "Enable Sound",
+        body: "Tap <b>🔊</b> to unmute effects.",
+        skip: "Skip",
+      },
+      music: {
+        title: "Start Music",
+        body: "Tap <b>♫</b> to play the BGM.",
+        skip: "Skip",
+      },
+      ready: {
+        title: "All set!",
+        body: "Sound & music are on. Enjoy 🎂",
+        begin: "Begin",
+      },
+    },
+  };
+
+  // Tiny helper: deep get + template {{var}}
+  function t(path, params = {}) {
+    const val = path.split(".").reduce((o, k) => (o ? o[k] : undefined), TEXT);
+    const all = { ...TEXT.vars, ...params };
+    if (typeof val === "string") {
+      return val.replace(/\{\{(\w+)\}\}/g, (_, k) =>
+        k in all ? String(all[k]) : ""
+      );
+    }
+    return val;
+  }
+
   // ---------------------------------------------------------------------------
   // 3) Mobile viewport correction (iOS 100vh fix)
   // ---------------------------------------------------------------------------
@@ -737,32 +887,31 @@
       btnMute?.classList.add("highlight");
       btnBGM?.classList.add("highlight");
 
-      const box = ui.box("Sound Check");
+      const box = ui.box(t("audioSetup.title"));
       box.classList.add("audio-setup");
 
-      const sub = ui.p("Please enable sound & music to get the full vibe ✨");
+      const sub = ui.p(t("audioSetup.sub"));
       sub.style.opacity = ".8";
       sub.style.textAlign = "center";
       box.appendChild(sub);
 
       const steps = document.createElement("div");
       steps.className = "steps";
-      steps.innerHTML =
-        "1) Tap <b>🔊</b> to unmute<br/>2) Tap <b>♫</b> to start music";
+      steps.innerHTML = t("audioSetup.steps");
       box.appendChild(steps);
 
       const status = document.createElement("p");
       status.className = "status";
       box.appendChild(status);
 
-      const hint = ui.hint("Tap A to start once both are ON");
+      const hint = ui.hint(t("audioSetup.hint"));
       box.appendChild(hint);
 
       const update = () => {
         const ok = isAudioReady();
         status.innerHTML = ok
-          ? '<span class="ok">Ready ✓ Sound ON + Music ON</span>'
-          : '<span class="warn">Not ready • turn ON both</span>';
+          ? `<span class="ok">${t("audioSetup.ready")}</span>`
+          : `<span class="warn">${t("audioSetup.notReady")}</span>`;
         if (ok) {
           clearInterval(this._timer);
           this._timer = 0;
@@ -798,9 +947,9 @@
   // --- INTRO -------------------------------------------------------------------
   game.scenes.Intro = {
     enter() {
-      const box = ui.box("Happy Birthday, Natasya!");
+      const box = ui.box(t("intro.title"));
       box.classList.add("layer-top");
-      const sub = ui.p("Tap A to begin your pastel 8-bit quest 💗");
+      const sub = ui.p(t("intro.sub"));
       box.appendChild(sub);
 
       const h = box.querySelector("h1");
@@ -833,38 +982,39 @@
   };
 
   // --- QUIZ --------------------------------------------------------------------
-  const QUIZ = [
-    {
-      q: "“When we celebrate a win, what do we reach for first?”",
-      a: [
-        "Cake and our favourite playlist",
-        "A polite congratulatory handshake",
-        "A stack of emails to answer",
-        "A round of chores to stay humble",
-      ],
-      praise: "Correct! 🎉 Celebrate like we mean it.",
-    },
-    {
-      q: "“Which word describes how you shine today?”",
-      a: [
-        "Radiant — glowing from the inside out",
-        "Sleepless — probably need a nap",
-        "Ordinary — nothing special happening",
-        "Invisible — hiding from the world",
-      ],
-      praise: "Radiant it is! ✨ Keep glowing.",
-    },
-    {
-      q: "“Where should our next adventure take us?”",
-      a: [
-        "Sunset picnic by a secret seaside",
-        "Back to spreadsheets and inboxes",
-        "A room with zero windows",
-        "No adventure — let’s stay put",
-      ],
-      praise: "Seaside sunsets, coming right up 🌅",
-    },
-  ];
+  // const QUIZ = [
+  //   {
+  //     q: "“When we celebrate a win, what do we reach for first?”",
+  //     a: [
+  //       "Cake and our favourite playlist",
+  //       "A polite congratulatory handshake",
+  //       "A stack of emails to answer",
+  //       "A round of chores to stay humble",
+  //     ],
+  //     praise: "Correct! 🎉 Celebrate like we mean it.",
+  //   },
+  //   {
+  //     q: "“Which word describes how you shine today?”",
+  //     a: [
+  //       "Radiant — glowing from the inside out",
+  //       "Sleepless — probably need a nap",
+  //       "Ordinary — nothing special happening",
+  //       "Invisible — hiding from the world",
+  //     ],
+  //     praise: "Radiant it is! ✨ Keep glowing.",
+  //   },
+  //   {
+  //     q: "“Where should our next adventure take us?”",
+  //     a: [
+  //       "Sunset picnic by a secret seaside",
+  //       "Back to spreadsheets and inboxes",
+  //       "A room with zero windows",
+  //       "No adventure — let’s stay put",
+  //     ],
+  //     praise: "Seaside sunsets, coming right up 🌅",
+  //   },
+  // ];
+  const QUIZ = t("quiz.items");
 
   game.scenes.Quiz = {
     idx: 0,
@@ -872,10 +1022,10 @@
     locked: false,
 
     build() {
-      const box = ui.box("Quiz Time!");
+      const box = ui.box(t("quiz.title"));
       const wrap = document.createElement("div");
       wrap.className = "quiz";
-      const q = ui.p(QUIZ[this.idx].q);
+      const q = ui.p(t("quiz.items")[this.idx].q);
       wrap.appendChild(q);
 
       const list = document.createElement("ul");
@@ -883,7 +1033,7 @@
       const letters = ["A", "B", "C", "D"];
       const frag = document.createDocumentFragment();
 
-      QUIZ[this.idx].a.forEach((txt, k) => {
+      t("quiz.items")[this.idx].a.forEach((txt, k) => {
         const li = document.createElement("li");
         const btn = document.createElement("button");
         btn.className = "opt";
@@ -929,7 +1079,8 @@
         const k = Number(btn.dataset.index);
         if (k === 0) {
           this.locked = true;
-          const praise = QUIZ[this.idx]?.praise || "Nice!";
+          const praise =
+            t("quiz.items")[this.idx]?.praise || t("quiz.finishTitle");
           audio.play("confirm");
           vibe(10);
 
@@ -956,25 +1107,20 @@
                 abortTyping();
                 card.replaceWith(this.build());
               } else {
-                const finCard = ui.box("Nice!");
+                const finCard = ui.box(t("quiz.finishTitle"));
                 const fin = document.createElement("div");
                 fin.className = "dialog praise";
                 const sub = document.createElement("div");
                 fin.appendChild(sub);
                 finCard.appendChild(fin);
                 layers.stage.replaceChildren(finCard);
-                typeText(
-                  sub,
-                  "You did it! Let’s pop some balloons…",
-                  46,
-                  () => {
-                    setTimeout(() => {
-                      confettiBurst("mini");
-                      game.completeCurrent();
-                      game.setScene("Balloons");
-                    }, 620);
-                  }
-                );
+                typeText(sub, t("quiz.finishText"), 46, () => {
+                  setTimeout(() => {
+                    confettiBurst("mini");
+                    game.completeCurrent();
+                    game.setScene("Balloons");
+                  }, 620);
+                });
               }
             }, 620);
           });
@@ -1009,16 +1155,18 @@
   };
 
   // --- BALLOONS ----------------------------------------------------------------
-  const BALLOON_MSGS = [
-    "Aku suka caramu menenangkan aku.",
-    "Terima kasih sudah sabar sama kekuranganku.",
-    "Kamu bikin hari biasa jadi spesial.",
-    "Tetap jadi kamu yang hangat ya.",
-    "Aku bangga sama growth kamu.",
-    "Semoga mimpi-mimpimu makin dekat.",
-    "You deserve all the gentle things.",
-    "Aku selalu dukung kamu.",
-  ];
+  // const BALLOON_MSGS = [
+  //   "Aku suka caramu menenangkan aku.",
+  //   "Terima kasih sudah sabar sama kekuranganku.",
+  //   "Kamu bikin hari biasa jadi spesial.",
+  //   "Tetap jadi kamu yang hangat ya.",
+  //   "Aku bangga sama growth kamu.",
+  //   "Semoga mimpi-mimpimu makin dekat.",
+  //   "You deserve all the gentle things.",
+  //   "Aku selalu dukung kamu.",
+  // ];
+
+  const BALLOON_MSGS = t("balloons.messages");
   const balloonSVG = (c) =>
     `<svg class="balloon-svg" viewBox="0 0 80 110" aria-hidden="true">
       <ellipse cx="40" cy="40" rx="26" ry="32" fill="${c}" stroke="#ff9bb0" stroke-width="3"/>
@@ -1026,6 +1174,7 @@
       <path d="M40 74 C 40 90, 46 96, 40 110" stroke="#caa" stroke-width="2" fill="none"/>
     </svg>`;
 
+  // --- BALLOONS (2 kolom × 3 baris tetap) ---------------------------------------
   game.scenes.Balloons = {
     popped: 0,
     listeners: [],
@@ -1035,8 +1184,8 @@
     enter() {
       this.popped = 0;
 
-      const box = ui.box("Pop the Balloons!");
-      const hint = ui.p("Tap balloons to reveal messages 💬");
+      const box = ui.box(t("balloons.title"));
+      const hint = ui.p(t("balloons.hint"));
       box.appendChild(hint);
       box.style.height = "100%";
       box.style.display = "flex";
@@ -1046,7 +1195,10 @@
       grid.className = "grid";
       grid.style.flex = "1";
 
-      BALLOON_MSGS.forEach((msg, i) => {
+      // ✅ Ambil persis 6 pesan (2×3). Kalau mau acak tiap buka, pakai shuffle & slice.
+      const MSGS = BALLOON_MSGS.slice(0, 6);
+
+      MSGS.forEach((msg, i) => {
         const tile = document.createElement("button");
         tile.className = "tile";
         tile.type = "button";
@@ -1065,7 +1217,7 @@
           }, 220);
           tile.disabled = true;
 
-          if (++this.popped === BALLOON_MSGS.length) {
+          if (++this.popped === MSGS.length) {
             setTimeout(() => {
               confettiBurst("mini");
               game.completeCurrent();
@@ -1080,27 +1232,66 @@
       });
 
       box.appendChild(grid);
-
-      // Responsive tile sizing
+      // tiles sedikit lebih besar: scale 0.90 + clamp [72, 144] + gap 10px
+      // tiles lebih besar: scale 0.98, clamp [80, 168], gap 8px
       const layout = () => {
-        const cols = root.clientWidth >= 520 ? 4 : 2;
+        const cols = 2;
+        const rows = 3;
         grid.style.setProperty("--cols", cols);
-        const gap = parseFloat(getComputedStyle(grid).gap) || 10;
-        const rows = Math.ceil(BALLOON_MSGS.length / cols);
-        const availW = grid.clientWidth - gap * (cols - 1);
-        const availH = grid.clientHeight - gap * (rows - 1);
-        const tile = Math.max(
-          56,
-          Math.min(Math.floor(availW / cols), Math.floor(availH / rows))
+        grid.style.gap = "8px"; // kasih ruang supaya tile bisa membesar
+        const gap = parseFloat(getComputedStyle(grid).gap) || 8;
+
+        // hitung tinggi area isi card (tanpa judul + hint + padding)
+        const cs = getComputedStyle(box);
+        const padY =
+          parseFloat(cs.paddingTop || "0") +
+          parseFloat(cs.paddingBottom || "0");
+        const headH =
+          (box.querySelector("h1")?.offsetHeight || 0) +
+          (hint?.offsetHeight || 0) +
+          8;
+
+        // sedikit safety agar tak nabrak footer (termasuk safe-area iOS)
+        const safeBottom =
+          (parseFloat(
+            getComputedStyle(document.documentElement).getPropertyValue(
+              "--space"
+            )
+          ) || 0) + (window.visualViewport ? 2 : 0);
+
+        const gridH = Math.max(
+          120,
+          Math.floor(box.clientHeight - padY - headH - safeBottom)
         );
+
+        const availW = grid.clientWidth - gap * (cols - 1);
+        const availH = gridH - gap * (rows - 1);
+
+        // perbesar dari sebelumnya
+        const SCALE = 0.975;
+        let tile = Math.floor(Math.min(availW / cols, availH / rows) * SCALE);
+
+        // clamp lebih longgar supaya terasa besar, tapi tetap aman
+        tile = Math.max(80, Math.min(tile, 168));
+
         grid.style.setProperty("--tile", tile + "px");
       };
 
-      this.ro = new ResizeObserver(layout);
-      this.ro.observe(root);
+      // gunakan ResizeObserver + raf tujuannya stabil di Safari
+      this.ro = new ResizeObserver(() => {
+        requestAnimationFrame(() => requestAnimationFrame(layout));
+      });
+      this.ro.observe(layers.stage || root);
+
       this.onResize = () => layout();
       addEventListener("resize", this.onResize, { passive: true });
-      setTimeout(layout, 0);
+
+      // panggil beberapa kali untuk memastikan ukuran sudah final di Safari
+      requestAnimationFrame(() => {
+        layout();
+        setTimeout(layout, 0);
+        setTimeout(layout, 120);
+      });
 
       typeTitle(box, { subEl: hint, titleSpeed: 54, subSpeed: 46 });
       return box;
@@ -1135,8 +1326,8 @@
     flameEl: null,
 
     enter() {
-      const box = ui.box("Make a Wish ✨");
-      const sub = ui.p("Hold the button to blow the candle.");
+      const box = ui.box(t("candle.title"));
+      const sub = ui.p(t("candle.sub"));
       sub.style.textAlign = "center";
       sub.style.opacity = ".75";
       sub.style.marginBottom = "clamp(10px, 2.5vmin, 18px)"; // spacing to cake
@@ -1152,7 +1343,7 @@
           <div class="cake-body"></div>
           <div class="cake-plate"></div>
         </div>
-        <button class="hold" id="hold">Press & Hold</button>
+        <button class="hold" id="hold">${t("candle.hold")}</button>
         <div class="progress"><i id="bar"></i></div>
       `;
       box.appendChild(cake);
@@ -1176,7 +1367,7 @@
             this.holding = false;
             this.barEl.style.width = "100%";
             this.flameEl.style.display = "none";
-            this.holdEl.textContent = "Wish granted!";
+            this.holdEl.textContent = t("candle.granted");
             confettiBurst("base");
             audio.play("confirm");
             vibe(25);
@@ -1231,8 +1422,8 @@
     ],
 
     enter() {
-      const box = ui.box("Memories");
-      const sub = ui.p("Swipe ◀ ▶ or tap the arrows");
+      const box = ui.box(t("memories.title"));
+      const sub = ui.p(t("memories.sub"));
       sub.style.textAlign = "center";
       sub.style.opacity = ".75";
       box.appendChild(sub);
@@ -1339,11 +1530,7 @@
   };
 
   // --- MESSAGE -----------------------------------------------------------------
-  const MSG = [
-    "Another year, another chance to tell you how wildly treasured you are.",
-    "You chase your dreams with a brave heart and still make space for softness.",
-    "Here’s to more laughter, more adventures, and more love around our days.",
-  ];
+  const MSG = t("message.paras");
 
   game.scenes.Message = {
     box: null,
@@ -1356,8 +1543,8 @@
       const head = document.createElement("div");
       head.className = "ui-box";
       const h = document.createElement("h2");
-      h.textContent = "Message";
-      const sub = ui.p("A letter for you…");
+      h.textContent = t("message.title");
+      const sub = ui.p(t("message.sub"));
       sub.style.textAlign = "center";
       sub.style.opacity = ".75";
       head.append(h, sub);
@@ -1374,7 +1561,7 @@
 
       wrap.append(head, this.box);
 
-      const note = ui.p("Tap A to continue");
+      const note = ui.p(t("message.hintA"));
       note.style.textAlign = "center";
       note.style.opacity = "0";
       note.style.transition = "opacity .25s linear";
@@ -1421,8 +1608,8 @@
   // --- GIFT --------------------------------------------------------------------
   game.scenes.Gift = {
     enter() {
-      const box = ui.box("A little gift");
-      const sub = ui.p("Save the card or continue to the finale.");
+      const box = ui.box(t("gift.title"));
+      const sub = ui.p(t("gift.sub"));
       sub.style.textAlign = "center";
       sub.style.opacity = ".75";
       box.appendChild(sub);
@@ -1451,8 +1638,8 @@
       row.style.gap = "10px";
       row.style.marginTop = "10px";
 
-      const btnSave = ui.btn("Download PNG");
-      const btnGo = ui.btn("Grand Finale →");
+      const btnSave = ui.btn(t("gift.download"));
+      const btnGo = ui.btn(t("gift.finale"));
 
       btnSave.addEventListener("click", () => {
         // open in new tab; user can Save As
@@ -1496,13 +1683,11 @@
       box.className = "ui-box center";
 
       const h = document.createElement("h2");
-      h.textContent = "Happy Birthday, Natasya! 💖";
+      h.textContent = t("outro.title");
 
-      const p = ui.p(
-        "May your days be soft, brave, and full of tiny victories."
-      );
+      const p = ui.p(t("outro.text"));
 
-      const btn = ui.btn("Restart");
+      const btn = ui.btn(t("outro.restart"));
       btn.classList.add("outro-btn");
       btn.addEventListener("click", () => {
         game.progress.clear();
@@ -1580,17 +1765,17 @@
       const tipEl = document.getElementById("coachTip");
       if (!tipEl) return;
       tipEl.innerHTML = `
-        <h3>${title}</h3>
-        <p>${body}</p>
-        <div class="coach-actions">
-          ${actions
-            .map(
-              (a) =>
-                `<button class="coach-btn" data-act="${a.act}">${a.label}</button>`
-            )
-            .join("")}
-        </div>
-      `;
+      <h3>${title}</h3>
+      <p>${body}</p>
+      <div class="coach-actions">
+        ${actions
+          .map(
+            (a) =>
+              `<button class="coach-btn" data-act="${a.act}">${a.label}</button>`
+          )
+          .join("")}
+      </div>
+    `;
     }
 
     function coachBindActions(map = {}) {
@@ -1600,13 +1785,6 @@
           map[act]?.();
         };
       });
-    }
-
-    function coachShow() {
-      document.getElementById("coach")?.classList.remove("coach-hidden");
-    }
-    function coachHide() {
-      document.getElementById("coach")?.classList.add("coach-hidden");
     }
 
     function ensureOverlay() {
@@ -1678,16 +1856,23 @@
       }
     }
 
+    // === Steps (now using t('coach.*')) =======================================
     function stepRinger(next) {
       tip.innerHTML = `
-        <h3>Turn on your Ring 🔔</h3>
-        <p>Make sure your phone isn’t on Silent and media volume is up.</p>
-        <div class="coach-actions">
-          <button class="coach-btn" id="coachBeep">Test beep</button>
-          <button class="coach-btn" id="coachNext">Continue</button>
-          <button class="coach-btn" id="coachSkip">Skip</button>
-        </div>
-      `;
+      <h3>${t("coach.ring.title")}</h3>
+      <p>${t("coach.ring.body")}</p>
+      <div class="coach-actions">
+        <button class="coach-btn" id="coachBeep">${t(
+          "coach.ring.test"
+        )}</button>
+        <button class="coach-btn" id="coachNext">${t(
+          "coach.ring.next"
+        )}</button>
+        <button class="coach-btn" id="coachSkip">${t(
+          "coach.ring.skip"
+        )}</button>
+      </div>
+    `;
       $("#coachBeep", tip).addEventListener("click", () => playBeep(500));
       $("#coachNext", tip).addEventListener("click", () => next());
       $("#coachSkip", tip).addEventListener("click", () => finish(true));
@@ -1696,12 +1881,14 @@
 
     function stepUnmute(next) {
       tip.innerHTML = `
-        <h3>Enable Sound</h3>
-        <p>Tap <b>🔊</b> to unmute effects.</p>
-        <div class="coach-actions">
-          <button class="coach-btn" id="coachSkip">Skip</button>
-        </div>
-      `;
+      <h3>${t("coach.unmute.title")}</h3>
+      <p>${t("coach.unmute.body")}</p>
+      <div class="coach-actions">
+        <button class="coach-btn" id="coachSkip">${t(
+          "coach.unmute.skip"
+        )}</button>
+      </div>
+    `;
       $("#coachSkip", tip).addEventListener("click", () => next());
       trackFocus(btnMute);
 
@@ -1717,12 +1904,14 @@
 
     function stepMusic(next) {
       tip.innerHTML = `
-        <h3>Start Music</h3>
-        <p>Tap <b>♫</b> to play the BGM.</p>
-        <div class="coach-actions">
-          <button class="coach-btn" id="coachSkip">Skip</button>
-        </div>
-      `;
+      <h3>${t("coach.music.title")}</h3>
+      <p>${t("coach.music.body")}</p>
+      <div class="coach-actions">
+        <button class="coach-btn" id="coachSkip">${t(
+          "coach.music.skip"
+        )}</button>
+      </div>
+    `;
       $("#coachSkip", tip).addEventListener("click", () => next());
       trackFocus(btnBGM);
 
@@ -1740,15 +1929,18 @@
 
     function stepReady(next) {
       tip.innerHTML = `
-        <h3>All set!</h3>
-        <p>Sound & music are on. Enjoy 🎂</p>
-        <div class="coach-actions">
-          <button class="coach-btn" id="coachStart">Begin</button>
-        </div>
-      `;
+      <h3>${t("coach.ready.title")}</h3>
+      <p>${t("coach.ready.body")}</p>
+      <div class="coach-actions">
+        <button class="coach-btn" id="coachStart">${t(
+          "coach.ready.begin"
+        )}</button>
+      </div>
+    `;
       $("#coachStart", tip).addEventListener("click", () => next());
       trackFocus(null);
     }
+    // ==========================================================================
 
     function showOverlay() {
       ensureOverlay();

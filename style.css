@@ -859,6 +859,23 @@ p {
   padding: 10px;
 }
 
+/* --- Patch: Message scene centering on desktop --- */
+/* Buat anak-anak di dalam .msg-wrap mengikuti lebar container .msg-wrap,
+   bukan lebar global .ui-box (var(--card-w)) yang bikin melebar ke kanan. */
+.msg-wrap > .ui-box,
+.msg-wrap .msg-box.ui-box {
+  width: 100% !important; /* override width default .ui-box */
+  margin-inline: auto; /* pastikan benar-benar center */
+  justify-self: center; /* grid alignment guard */
+}
+
+/* Sedikit pelebaran untuk desktop, tetap aman untuk hp */
+@media (min-width: 980px) {
+  .msg-wrap {
+    width: min(760px, 100%); /* biar tidak “ketarik” sampai 900px */
+    justify-items: center; /* semua child di tengah */
+  }
+}
 /* ============ 15) TRANSITIONS (IRIS / TILES) ==================================== */
 
 .fx-iris,
