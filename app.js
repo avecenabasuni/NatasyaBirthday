@@ -72,12 +72,12 @@
       starsTotal: 7,
     },
     global: {
-      brand: "🍰 {{name}}’s Day",
+      brand: "🍰 {{name}}'s Day",
       footer: {
-        confirm: "Confirm",
+        confirm: "Next",
         back: "Back",
         swipe: "Swipe",
-        where: "where relevant",
+        where: "gently Bub!",
       },
     },
     audioSetup: {
@@ -89,68 +89,72 @@
       hint: "Tap A to start once both are ON",
     },
     intro: {
-      title: "Happy Birthday, {{name}}!",
-      sub: "Tap A to begin your pastel 8-bit quest 💗",
+      title: "Ready, Meine Liebe?",
+      sub: "Your mission is to have the cutest birthday ever! Tap A to begin the mission bub 💞",
     },
     quiz: {
       title: "Quiz Time!",
       items: [
         {
-          q: "“When we celebrate a win, what do we reach for first?”",
+          q: "It's your birthday today, far from home without me huhu, apa reaksi pertamamu ketika aku kasih web game ini sayangku?",
           a: [
-            "Cake and our favourite playlist",
-            "A polite congratulatory handshake",
-            "A stack of emails to answer",
-            "A round of chores to stay humble",
+            "Lucu amay lucu amay",
+            "Tidak peduli sama sekali, buka TikTok sampe lupa waktu (please don't bub! 😭)",
+            "Tidur 24x7x365",
+            "Jadi semangat belajar ngoding Python (si paling data science bro)",
           ],
-          praise: "Correct! 🎉 Celebrate like we mean it.",
+          praise:
+            "Yeey makasih ya sayang udah apresiasi hehe 💖 Even from miles away, I still wanna make you smile.",
         },
         {
-          q: "“Which word describes how you shine today?”",
+          q: "Alright Miss Beauty Traveler, misalna aku tiba-tiba muncul di sana sekarang, apa hal pertama yang bakal kamu lakuin?",
           a: [
-            "Radiant — glowing from the inside out",
-            "Sleepless — probably need a nap",
-            "Ordinary — nothing special happening",
-            "Invisible — hiding from the world",
+            "Ngejek nyenyenye terus peluk akuuw 🥺",
+            "Liatin aje dari jauh, terus pura-pura ga liat (deja vu pas mini soccer)",
+            "Naik gunung tertinggi di Australia",
+            "Bodo amat, main HP terus lanjut scroll TikTok aje",
           ],
-          praise: "Radiant it is! ✨ Keep glowing.",
+          praise:
+            "WKWKWKWK the classic you that I love, sending virtual hug(s) for you my love 💛",
         },
         {
-          q: "“Where should our next adventure take us?”",
+          q: "Plis pas main ini kamu senyum-senyum dong, kalo gak yaudah lah aku sedih HUH. Tapi, kalau kamu cuma bisa ngomong satu hal ke aku sekarang, apa yang mau kamu omongin ke aku?",
           a: [
-            "Sunset picnic by a secret seaside",
-            "Back to spreadsheets and inboxes",
-            "A room with zero windows",
-            "No adventure — let’s stay put",
+            "I miss you so much (aww me too bub), tapi yaudah pura-pura gak kangen aja deh",
+            "Nyenyenye",
+            "Do you really love me? (you know I do, and YOU NEVER ASKED ME THIS TOO BEFORE HUH)",
+            "Ribut yuk?",
           ],
-          praise: "Seaside sunsets, coming right up 🌅",
+          praise:
+            "Kurang natasya ape lagi, half denial, half feelings, and somehow still the warmest thing ever for me 🩶",
         },
       ],
-      finishTitle: "Nice!",
-      finishText: "You did it! Let’s pop some balloons…",
+      finishTitle: "You nailed it!",
+      finishText:
+        "Oke deh, yang tadi kegampangan ga sih? Kita lanjut pecahin balon satu-satu yuk sayang!",
     },
     balloons: {
-      title: "Pop the Balloons!",
-      hint: "Tap balloons to reveal messages 💬",
+      title: "Pop Some Balloons!",
+      hint: "Each balloon hides a little message that I want to say to you bub 🎈",
       messages: [
-        "Aku suka caramu menenangkan aku.",
-        "Terima kasih sudah sabar sama kekuranganku.",
-        "Kamu bikin hari biasa jadi spesial.",
-        "Tetap jadi kamu yang hangat ya.",
-        "Aku bangga sama growth kamu.",
-        "Semoga mimpi-mimpimu makin dekat.",
+        "Semoga semua harapan kamu terkabul ya sayang",
+        "Makasih udah sabar sama aku yang ngeselin ini hehe",
+        "Aku sayang sama kamu banget banget banget",
+        "Semoga kamu selalu sehat dan bahagia ya bub",
+        "Makasih udah jadi diri kamu yang sangat thoughtful dan penyayang",
+        "You're my favorite person in the whole wide world",
         "You deserve all the gentle things.",
         "Aku selalu dukung kamu.",
       ],
     },
     candle: {
-      title: "Make a Wish ✨",
-      sub: "Hold the button to blow the candle.",
+      title: "Make a Wish, Bub! ✨",
+      sub: "Take a deep breath, and make a wish just for yourself bub. Tahan tombol di bawah yaa buat tiup lilinnya 🕯️",
       hold: "Press & Hold",
-      granted: "Wish granted!",
+      granted: "Wish granted! S2 here we gooo 🎉",
     },
     memories: {
-      title: "Memories",
+      title: "Memory Lane",
       sub: "Swipe ◀ ▶ or tap the arrows",
       hintA: "Tap A to continue",
       ariaPrev: "Previous",
@@ -609,6 +613,7 @@
     currentName: "",
     progress: new Set(),
     order: [
+      "Boot",
       "Intro",
       "Quiz",
       "Balloons",
@@ -942,6 +947,88 @@
     onB() {
       vibe(15);
     },
+  };
+
+  // --- BOOT (auto power-on; no input needed) ------------------------------------
+  game.scenes.Boot = {
+    _timer: 0,
+
+    enter() {
+      // Sembunyikan HUD/footer saat boot
+      document.body.classList.add("booting");
+
+      const wrap = document.createElement("div");
+      wrap.className = "boot-wrap";
+      wrap.setAttribute("aria-label", "Game Boy boot");
+
+      wrap.innerHTML = `
+      <div class="boot-screen pixel-border">
+        <i class="boot-scan"></i>
+        <div class="boot-led" aria-hidden="true"></div>
+        <div class="boot-logo">
+          <span class="boot-drop">NINTENDO</span>
+        </div>
+        <p class="boot-credit">Made with 💖 by Avenya</p>
+      </div>
+    `;
+
+      // minimal "ding" pakai WebAudio (tanpa Howler)
+      const ding = () => {
+        try {
+          const Ctx = window.AudioContext || window.webkitAudioContext;
+          const ctx = new Ctx();
+          const o = ctx.createOscillator();
+          const g = ctx.createGain();
+          o.type = "square";
+          o.frequency.setValueAtTime(880, ctx.currentTime);
+          o.frequency.exponentialRampToValueAtTime(1174, ctx.currentTime + 0.1);
+          g.gain.setValueAtTime(0.07, ctx.currentTime);
+          g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.18);
+          o.connect(g);
+          g.connect(ctx.destination);
+          o.start();
+          o.stop(ctx.currentTime + 0.2);
+          o.onended = () => ctx.close();
+        } catch {}
+      };
+
+      const rm = matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const logo = wrap.querySelector(".boot-drop");
+      const credit = wrap.querySelector(".boot-credit");
+
+      requestAnimationFrame(() => {
+        logo.classList.add("show");
+        if (!rm) setTimeout(ding, 320);
+        else ding();
+        setTimeout(() => credit.classList.add("show"), rm ? 120 : 700);
+      });
+
+      // Auto selesai setelah animasi
+      const ms = rm ? 900 : 1800;
+      this._timer = setTimeout(() => this.finish(), ms);
+
+      return wrap;
+    },
+
+    finish() {
+      clearTimeout(this._timer);
+      this._timer = 0;
+
+      // Tampilkan HUD/footer lagi
+      document.body.classList.remove("booting");
+
+      // Baru load layer/coach setelah boot
+      ensureBalloonsLayer();
+      coach.startIfNeeded();
+    },
+
+    exit() {
+      clearTimeout(this._timer);
+      this._timer = 0;
+    },
+
+    onA() {}, // tidak dipakai
+    onB() {}, // tidak dipakai
   };
 
   // --- INTRO -------------------------------------------------------------------
