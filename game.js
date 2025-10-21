@@ -189,8 +189,8 @@ export async function startGame() {
         finale: "Grand Finale >",
       },
       outro: {
-        title: "Happy Birthday, {{name}}! 💖",
-        text: "Serta mulia bibub. May Allah bless you with endless happiness and success in life. Can't wait to see you again soon! 🌸",
+        title: "Happy Birthday, Nata 💖",
+        text: "Thank you for playing this little game from me. May Allah bless you with endless happiness and success in life. Can't wait to see you again soon! 🌸",
         restart: "Restart",
       },
       coach: {
@@ -218,6 +218,97 @@ export async function startGame() {
         },
       },
     };
+
+    /* === 3D Tilt Helper === */
+    function enableTilt(card, { max = 12, scale = 1.03, glare = true } = {}) {
+      // wrap untuk perspektif
+      const wrap = document.createElement("div");
+      wrap.className = "tilt-wrap";
+      card.parentNode.insertBefore(wrap, card);
+      wrap.appendChild(card);
+
+      card.classList.add("tilt-card");
+
+      let glareEl = null;
+      if (glare) {
+        glareEl = document.createElement("i");
+        glareEl.className = "tilt-glare";
+        card.appendChild(glareEl);
+      }
+
+      const rm = matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if (rm) return () => {}; // no-op bila reduce motion
+
+      let rect = null,
+        raf = 0,
+        active = false;
+
+      const getPoint = (e) => {
+        const t = e.touches ? e.touches[0] : e;
+        return { x: t.clientX, y: t.clientY };
+      };
+
+      const onEnter = (e) => {
+        rect = card.getBoundingClientRect();
+        active = true;
+        card.classList.add("is-active");
+      };
+
+      const onMove = (e) => {
+        if (!active || !rect) return;
+        const { x, y } = getPoint(e);
+        const px = (x - rect.left) / rect.width - 0.5; // -0.5 .. 0.5
+        const py = (y - rect.top) / rect.height - 0.5; // -0.5 .. 0.5
+        const rx = -py * 2 * max;
+        const ry = px * 2 * max;
+
+        cancelAnimationFrame(raf);
+        raf = requestAnimationFrame(() => {
+          card.style.transform = `rotateX(${rx}deg) rotateY(${ry}deg) scale(${scale})`;
+          if (glareEl) {
+            const d = Math.hypot(px, py);
+            glareEl.style.opacity = Math.min(0.45, 0.12 + d * 0.5);
+            // geser highlight dikit mengikuti pointer
+            const gx = 50 + px * 40; // %
+            const gy = 50 + py * 40; // %
+            glareEl.style.background = `radial-gradient(140px 100px at ${gx}% ${gy}%, rgba(255,255,255,.45), rgba(255,255,255,0) 60%)`;
+          }
+        });
+      };
+
+      const onLeave = () => {
+        active = false;
+        cancelAnimationFrame(raf);
+        card.style.transform = "";
+        if (glareEl) glareEl.style.opacity = "0";
+        card.classList.remove("is-active");
+      };
+
+      // pointer & touch
+      card.addEventListener("pointerenter", onEnter);
+      card.addEventListener("pointermove", onMove);
+      card.addEventListener("pointerleave", onLeave);
+      card.addEventListener("touchstart", onEnter, { passive: true });
+      card.addEventListener("touchmove", onMove, { passive: true });
+      card.addEventListener("touchend", onLeave);
+      card.addEventListener("touchcancel", onLeave);
+
+      // cleanup
+      return () => {
+        card.removeEventListener("pointerenter", onEnter);
+        card.removeEventListener("pointermove", onMove);
+        card.removeEventListener("pointerleave", onLeave);
+        card.removeEventListener("touchstart", onEnter);
+        card.removeEventListener("touchmove", onMove);
+        card.removeEventListener("touchend", onLeave);
+        card.removeEventListener("touchcancel", onLeave);
+        if (glareEl) glareEl.remove();
+        card.classList.remove("tilt-card");
+        card.style.transform = "";
+        wrap.before(card);
+        wrap.remove();
+      };
+    }
 
     // Tiny helper: deep get + template {{var}}
     function t(path, params = {}) {
@@ -1753,15 +1844,16 @@ export async function startGame() {
       },
     };
 
-    // --- GIFT --------------------------------------------------------------------
     game.scenes.Gift = {
+      _disposeTilt: null,
       enter() {
-        const box = ui.box(t("gift.title"));
-        const sub = ui.p(t("gift.sub"));
+        const box = ui.box("A little gift");
+        const sub = ui.p("Save the card or continue to the finale.");
         sub.style.textAlign = "center";
         sub.style.opacity = ".75";
         box.appendChild(sub);
 
+        // === frame kartu (seperti sebelumnya) ===
         const frame = document.createElement("div");
         frame.className = "ui-box";
         frame.style.display = "grid";
@@ -1769,28 +1861,40 @@ export async function startGame() {
         frame.style.width = "min(420px,90%)";
         frame.style.aspectRatio = "3/2";
         frame.style.background = "var(--color-2)";
+        frame.style.cursor = "pointer"; // feel interaktif
 
         const img = new Image();
         img.alt = "Love card";
         img.src = "https://picsum.photos/seed/lovecard/960/640";
-        img.onerror = () => {
-          img.src = "https://picsum.photos/960/640?blur=1";
-        };
+        img.onerror = () => (img.src = "https://picsum.photos/960/640?blur=1");
         img.style.maxWidth = "100%";
         img.style.maxHeight = "100%";
         frame.appendChild(img);
 
+        // === bungkus dengan tilt-wrap & aktifkan tilt ===
+        const tiltWrap = document.createElement("div");
+        tiltWrap.className = "tilt-wrap";
+        tiltWrap.appendChild(frame);
+        box.appendChild(tiltWrap);
+
+        // aktifkan tilt (simpan disposer untuk exit)
+        this._disposeTilt = enableTilt(frame, {
+          max: 14,
+          scale: 1.035,
+          glare: true,
+        });
+
+        // tombol bawah tetap sama
         const row = document.createElement("div");
         row.style.display = "flex";
         row.style.justifyContent = "center";
         row.style.gap = "10px";
         row.style.marginTop = "10px";
 
-        const btnSave = ui.btn(t("gift.download"));
-        const btnGo = ui.btn(t("gift.finale"));
+        const btnSave = ui.btn("Download PNG");
+        const btnGo = ui.btn("Grand Finale →");
 
         btnSave.addEventListener("click", () => {
-          // open in new tab; user can Save As
           const w = window.open(img.src, "_blank", "noopener,noreferrer");
           if (!w) {
             const a = document.createElement("a");
@@ -1809,12 +1913,18 @@ export async function startGame() {
         });
 
         row.append(btnSave, btnGo);
-        box.append(frame, row);
+        box.append(row);
 
         typeTitle(box, { subEl: sub, titleSpeed: 54, subSpeed: 46 });
         return box;
       },
-      exit() {},
+      exit() {
+        // bersihkan tilt listeners bila ada
+        if (typeof this._disposeTilt === "function") {
+          this._disposeTilt();
+          this._disposeTilt = null;
+        }
+      },
       onA() {
         confettiBurst("finale");
         setTimeout(() => game.setScene("Outro"), 600);
