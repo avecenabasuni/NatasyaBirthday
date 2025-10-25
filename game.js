@@ -2546,8 +2546,6 @@ export async function startGame() {
     // ---------------------------------------------------------------------------
     ensureBalloonsLayer();
     coach.startIfNeeded();
-
-    // game.setScene("Memories");
   })();
 
   // ==== END: paste ====
