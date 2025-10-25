@@ -1878,7 +1878,7 @@ export async function startGame() {
         "BSD, July '25",
         "Senayan, July '25",
         "Kota Tua, August '25",
-        "Serpong, August '25",
+        // "Serpong, August '25",
         "Cikupa, August '25",
         "Kuningan, August '25",
         "Saber, September '25",
@@ -2546,6 +2546,7 @@ export async function startGame() {
     // ---------------------------------------------------------------------------
     ensureBalloonsLayer();
     coach.startIfNeeded();
+    // game.setScene("Memories");
   })();
 
   // ==== END: paste ====
