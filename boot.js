@@ -130,7 +130,7 @@ raf2(() => {
     console.error("[boot] failed to load game.js", err);
     const errBox = document.createElement("div");
     errBox.className = "ui-box";
-    errBox.innerHTML = `<h2>Oops</h2><p>Couldn’t load the game. Please refresh.</p>`;
+    errBox.innerHTML = `<h2>Oops</h2><p>Couldn't load the game. Please refresh.</p>`;
     root.appendChild(errBox);
   }
 })();

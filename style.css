@@ -921,6 +921,96 @@ p {
     justify-items: center; /* semua child di tengah */
   }
 }
+
+/* ===================== PAPER 8-BIT FOR MESSAGE ===================== */
+/* Kontainer kertas di dalam card */
+.msg-content.paper-8 {
+  position: relative;
+  padding: clamp(12px, 2.4vh, 18px) clamp(14px, 4vw, 22px);
+  background:
+    /* garis kiri ala notebook */ linear-gradient(
+        to right,
+        var(--color-4) 0 12px,
+        transparent 12px
+      )
+      local,
+    /* garis-garis horizontal halus (ruled) */
+      repeating-linear-gradient(
+        to bottom,
+        rgba(0, 0, 0, 0.06) 0 1px,
+        rgba(0, 0, 0, 0) 1px 24px
+      )
+      local,
+    #fffdf6; /* warna dasar kertas */
+  /* bingkai “pixel” + sedikit depth */
+  box-shadow: 0 0 0 var(--px) #000,
+    0 0 0 calc(var(--px) * 0.8) var(--color-3) inset, 0 2px 0 rgba(0, 0, 0, 0.1),
+    0 6px 12px rgba(0, 0, 0, 0.06);
+  border-radius: 6px; /* lembut dikit, tetap 8-bit vibes via shadow */
+  overflow: hidden;
+}
+
+/* Lubang perforasi “pixel” di sisi kiri (8-bit style) */
+.msg-content.paper-8::before {
+  content: "";
+  position: absolute;
+  left: 6px; /* selaras dengan garis pink 12px */
+  top: 10px;
+  bottom: 10px;
+  width: 8px;
+  background:
+    /* deret “lubang” kotak */ repeating-linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.2) 0 2px,
+    #fffdf6 2px 20px
+  );
+  box-shadow: 0 0 0 2px #000 inset;
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+/* Lipatan sudut (dog-ear) ala kertas */
+.msg-content.paper-8::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 14px;
+  height: 14px;
+  background: linear-gradient(
+    135deg,
+    rgba(0, 0, 0, 0) 0 49%,
+    rgba(0, 0, 0, 0.2) 50% 100%
+  );
+  box-shadow: -2px 2px 0 #000 inset;
+  pointer-events: none;
+}
+
+/* Teks di atas “garis” tetap terbaca */
+.msg-content.paper-8 p {
+  position: relative;
+  z-index: 1;
+  margin: 10px 0;
+  line-height: 1.5;
+  color: #2a2330;
+}
+
+/* Scroll feel yang mulus di iOS (garis ikut bergerak) */
+.msg-box {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Kompak untuk layar kecil */
+@media (max-width: 420px) {
+  .msg-content.paper-8 {
+    padding: 12px 14px;
+  }
+  .msg-content.paper-8::before {
+    left: 5px;
+    width: 7px;
+  }
+}
+
 /* ============ 15) TRANSITIONS (IRIS / TILES) ==================================== */
 
 .fx-iris,
@@ -1407,4 +1497,501 @@ body.booting #scene-root {
 .boot-credit {
   opacity: 0.9;
   font-size: clamp(11px, 2.2vw, 13px);
+}
+
+/* 8-bit scoreboard in Outro */
+.scoreboard {
+  margin: 8px auto 10px;
+  padding: 10px;
+  background: var(--color-1);
+  width: min(360px, 100%);
+  display: grid;
+  gap: 6px;
+  box-shadow: 0 0 0 var(--px) var(--color-4) inset;
+  font-size: var(--fs-sm);
+}
+.scoreboard .row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 10px;
+}
+.scoreboard .row span {
+  opacity: 0.8;
+}
+.scoreboard .row b {
+  font-size: var(--fs-md);
+}
+.scoreboard .row.note i {
+  opacity: 0.85;
+  font-style: normal;
+}
+.scoreboard .rank {
+  display: inline-grid;
+  place-items: center;
+  min-width: 32px;
+  min-height: 28px;
+  padding: 2px 8px;
+  background: var(--color-3);
+  box-shadow: 0 0 0 var(--px) var(--color-4) inset;
+}
+
+/* ==========================================================================
+   SLIDESHOW / MEMORIES — FULL CSS (with pixel skin + strict layering)
+   Replace your existing `.ss-*` block with this
+   ========================================================================== */
+
+/* ===== Base wrapper ===== */
+.ss-wrap {
+  width: min(680px, 100%);
+  margin: 0 auto;
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+}
+
+/* ===== Stage (photo area) ===== */
+.ss-stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: var(--color-2);
+  box-shadow: 0 0 0 var(--px) var(--color-3) inset;
+  overflow: hidden;
+
+  /* z-index map (low → high) */
+  --z-scan: 1; /* scanlines / vignette (::before)          */
+  --z-bezel: 2; /* inner multicolor bezel (::after)          */
+  --z-img: 4; /* actual <img>                              */
+  --z-skin: 5; /* your SVG frame/skin                       */
+  --z-orn: 6; /* decorative ornaments (glint / pixies)     */
+  --z-stk: 7; /* stickers & screws                         */
+  --z-ribbon: 8; /* bottom ribbon / caption                   */
+  --z-nav: 10; /* ◀ ▶ navigation                           */
+}
+
+/* Keep image above background but below overlays we want */
+.ss-stage img {
+  position: relative;
+  z-index: var(--z-img);
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  image-rendering: pixelated;
+  display: block;
+}
+
+/* ===== Navigation arrows ===== */
+.ss-nav {
+  position: absolute;
+  z-index: var(--z-nav);
+  top: 50%;
+  transform: translateY(-50%);
+  width: clamp(36px, 7vmin, 52px);
+  height: clamp(36px, 7vmin, 52px);
+  border: 0;
+  border-radius: 999px;
+  background: var(--color-3);
+  box-shadow: 0 0 0 var(--px) var(--color-4) inset;
+  cursor: pointer;
+  font-size: clamp(14px, 2.6vmin, 18px);
+}
+.ss-nav.prev {
+  left: clamp(6px, 1.2vmin, 10px);
+}
+.ss-nav.next {
+  right: clamp(6px, 1.2vmin, 10px);
+}
+
+@media (max-width: 420px) {
+  .ss-nav {
+    width: 42px;
+    height: 42px;
+  }
+}
+
+/* ===== Dots ===== */
+.ss-dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.ss-dots .dot {
+  width: clamp(10px, 1.2vw, 12px);
+  height: clamp(10px, 1.2vw, 12px);
+  border: 0;
+  background: var(--color-3);
+  box-shadow: 0 0 0 var(--px) var(--color-4) inset;
+  cursor: pointer;
+}
+.ss-dots .dot[aria-selected="true"] {
+  background: var(--color-4);
+}
+
+/* ========================================================================== */
+/*                        PIXEL PHOTO SKIN + ORNAMENTS                        */
+/* ========================================================================== */
+
+/* Outer frame + patterned background */
+.ss-stage.pixel-frame {
+  --fpad: 10px;
+  border: 0;
+  box-shadow: 0 0 0 2px #000, 0 0 0 4px #ff8ba7;
+  background: repeating-linear-gradient(90deg, #222 0 6px, #26284a 6px 12px)
+    padding-box;
+}
+
+/* Scanlines + vignette UNDER everything except background */
+.ss-stage.pixel-frame::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-scan);
+  pointer-events: none;
+  background: radial-gradient(
+      ellipse at center,
+      rgba(0, 0, 0, 0) 60%,
+      rgba(0, 0, 0, 0.18) 100%
+    ),
+    repeating-linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0.06) 0 2px,
+      rgba(0, 0, 0, 0) 2px 4px
+    );
+  mix-blend-mode: multiply;
+}
+
+/* Inner multi-color bezel (lines only) */
+.ss-stage.pixel-frame::after {
+  content: "";
+  position: absolute;
+  inset: var(--fpad);
+  pointer-events: none;
+  z-index: var(--z-bezel);
+  box-shadow: 0 0 0 2px #000, 0 0 0 6px #00b6ff, 0 0 0 10px #ffde59,
+    0 0 0 14px #ff3d7f;
+}
+
+/* ===== SKIN SVG (your custom frame) — place above IMG */
+.ss-stage svg.skin-svg,
+.ss-stage svg.frame-svg,
+.ss-stage svg.pixel-skin,
+.ss-stage svg.photo-skin,
+.ss-stage .skin,
+.ss-stage .skin-wrap {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-skin);
+  pointer-events: none; /* don't block swipe/clicks */
+}
+
+/* ===== Ornaments (sprinkles, sparkles, glint) ===== */
+.ss-stage .pixies {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-orn);
+  pointer-events: none;
+}
+.ss-stage .pixies i {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  opacity: 0.8;
+  pointer-events: none;
+  animation: pixfloat 6s ease-in-out infinite;
+}
+@keyframes pixfloat {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+/* sprinkle shapes */
+.pix-dot {
+  border-radius: 1px;
+  background: #ffde59;
+  box-shadow: 0 0 0 2px #000 inset;
+}
+.pix-plus {
+  width: 7px;
+  height: 7px;
+  color: #00b6ff;
+}
+.pix-plus::before,
+.pix-plus::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  background: currentColor;
+}
+.pix-plus::before {
+  width: 7px;
+  height: 2px;
+}
+.pix-plus::after {
+  width: 2px;
+  height: 7px;
+}
+
+/* sparkle (twinkling star) */
+.pix-spark {
+  width: 8px;
+  height: 8px;
+  color: #fff;
+  filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.6));
+}
+.pix-spark::before,
+.pix-spark::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: currentColor;
+  clip-path: polygon(
+    50% 0,
+    60% 40%,
+    100% 50%,
+    60% 60%,
+    50% 100%,
+    40% 60%,
+    0 50%,
+    40% 40%
+  );
+  animation: twinkle 1.8s ease-in-out infinite;
+}
+@keyframes twinkle {
+  0%,
+  100% {
+    opacity: 0.15;
+    transform: scale(0.7) rotate(0deg);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1) rotate(18deg);
+  }
+}
+
+/* soft glint sweep on top of IMG (but below stickers/ribbon/nav) */
+.ss-stage .glint {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-orn);
+  pointer-events: none;
+  overflow: hidden;
+}
+.ss-stage .glint::before {
+  content: "";
+  position: absolute;
+  top: -20%;
+  left: -40%;
+  width: 40%;
+  height: 140%;
+  background: linear-gradient(
+    75deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.18) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  transform: skewX(-18deg);
+  animation: sweep 5.5s ease-in-out infinite;
+}
+@keyframes sweep {
+  0% {
+    transform: translateX(-30%) skewX(-18deg);
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  35% {
+    transform: translateX(220%) skewX(-18deg);
+    opacity: 0;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ===== Stickers (corners) ===== */
+.stk {
+  position: absolute;
+  width: 64px;
+  height: 64px;
+  z-index: var(--z-stk);
+  display: grid;
+  place-items: center;
+  filter: drop-shadow(0 0 0 #000);
+  pointer-events: none;
+}
+.stk > i {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.stk::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  box-shadow: 0 0 0 2px #000, 0 0 0 4px #ff8ba7;
+  border-radius: 8px;
+  opacity: 0.65;
+}
+.stk.tl {
+  left: 8px;
+  top: 8px;
+  transform: rotate(-4deg);
+}
+.stk.tr {
+  right: 8px;
+  top: 8px;
+  transform: rotate(4deg);
+}
+.stk.bl {
+  left: 8px;
+  bottom: 52px;
+  transform: rotate(3deg);
+}
+.stk.br {
+  right: 8px;
+  bottom: 52px;
+  transform: rotate(-3deg);
+}
+.stk.bop {
+  animation: bop 2.6s ease-in-out infinite;
+}
+@keyframes bop {
+  50% {
+    transform: translateY(-2px) rotate(var(--r, 0deg));
+  }
+}
+
+@media (max-width: 420px) {
+  .stk {
+    width: 52px;
+    height: 52px;
+  }
+}
+
+/* ===== Corner screws (pixel “sekrup”) ===== */
+.ss-stage .screw {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  z-index: var(--z-stk);
+  pointer-events: none;
+  background: #cfd6e0;
+  box-shadow: 0 0 0 2px #000 inset, 0 0 0 3px #ff8ba7;
+}
+.ss-stage .screw::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  width: 8px;
+  height: 2px;
+  background: #6b7b93;
+}
+.screw.tl {
+  left: 8px;
+  top: 8px;
+}
+.screw.tr {
+  right: 8px;
+  top: 8px;
+}
+.screw.bl {
+  left: 8px;
+  bottom: 8px;
+}
+.screw.br {
+  right: 8px;
+  bottom: 8px;
+}
+
+/* ===== Bottom ribbon + level caption ===== */
+.ss-ribbon {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 8px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  z-index: var(--z-ribbon);
+  pointer-events: none;
+}
+.ss-tag {
+  padding: 6px 8px;
+  background: #0b2a66;
+  color: #fff;
+  box-shadow: 0 0 0 2px #000, 0 0 0 4px #00b6ff;
+  font: 11px "Press Start 2P", system-ui;
+  white-space: nowrap;
+}
+.ss-cap {
+  flex: 1;
+  padding: 6px 10px;
+  background: #ffde59;
+  color: #000;
+  box-shadow: 0 0 0 2px #000, 0 0 0 4px #ff8ba7;
+  font: 11px "Press Start 2P", system-ui;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (max-width: 420px) {
+  .ss-tag,
+  .ss-cap {
+    font-size: 10px;
+  }
+}
+
+/* ===== Safety: any generic overlays must not steal clicks ===== */
+.ss-stage .overlay,
+.ss-stage .decals,
+.ss-stage .crt,
+.ss-stage .grain,
+.ss-stage .orn,
+.ss-stage .fx {
+  pointer-events: none;
+}
+
+/* Pixel stamp di TENGAH ATAS */
+.ss-stamp {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--fpad, 10px) + 8px); /* hormati padding frame jika ada */
+  transform: translateX(-50%);
+  z-index: 5; /* di atas foto, di bawah tombol nav (z:6) */
+  pointer-events: none;
+
+  background: #ffde59;
+  color: #000;
+  padding: 6px 10px;
+  font: 11px "Press Start 2P", system-ui, sans-serif;
+  letter-spacing: 0.3px;
+  opacity: 0.95;
+  box-shadow: 0 0 0 2px #000, 0 0 0 4px #ff8ba7;
+
+  max-width: min(82%, 520px); /* biar nggak kepanjangan */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+}
+
+@media (max-width: 420px) {
+  .ss-stamp {
+    top: calc(var(--fpad, 10px) + 6px);
+    font-size: 10px;
+    padding: 4px 8px;
+    max-width: 88%;
+  }
 }

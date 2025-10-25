@@ -752,6 +752,33 @@ export async function startGame() {
       });
     }
 
+    // --- Star scoring setup ---
+    const STAR_SCENES = new Set([
+      "Intro",
+      "Quiz",
+      "Balloons",
+      "Candle",
+      "Memories",
+      "Message",
+      "Gift",
+    ]);
+    const TOTAL_STARS = STAR_SCENES.size; // 7
+
+    function calcStars(progressSet) {
+      let n = 0;
+      for (const s of progressSet) if (STAR_SCENES.has(s)) n++;
+      return n;
+    }
+
+    function rankFor(stars) {
+      const p = stars / TOTAL_STARS;
+      if (p >= 1) return { grade: "S", note: "Perfect run!" };
+      if (p >= 0.86) return { grade: "A", note: "So close ✨" };
+      if (p >= 0.57) return { grade: "B", note: "Nice!" };
+      if (p >= 0.29) return { grade: "C", note: "Warm-up clear" };
+      return { grade: "D", note: "Practice mode" };
+    }
+
     // ---------------------------------------------------------------------------
     // 8) Scene Manager
     // ---------------------------------------------------------------------------
@@ -815,8 +842,11 @@ export async function startGame() {
       },
 
       completeCurrent() {
-        if (this.currentName) this.progress.add(this.currentName);
-        starCountEl.textContent = Math.min(8, this.progress.size).toString();
+        if (STAR_SCENES.has(this.currentName)) {
+          this.progress.add(this.currentName);
+        }
+        const stars = calcStars(this.progress);
+        starCountEl.textContent = Math.min(TOTAL_STARS, stars).toString();
       },
 
       next() {
@@ -1646,17 +1676,218 @@ export async function startGame() {
     };
 
     // --- MEMORIES (8-bit slideshow) ----------------------------------------------
+    function attachPhotoOverlays(stageEl, getIndex, getTotal, getCaption) {
+      stageEl.classList.add("hud-mini", "crt", "vignette");
+
+      // toast
+      const toast = document.createElement("div");
+      toast.className = "ss-toast";
+      stageEl.appendChild(toast);
+
+      const updateHUD = () => {
+        const idx = getIndex() + 1;
+        stageEl.setAttribute("data-stage", String(idx).padStart(2, "0"));
+        const cap = getCaption(getIndex());
+        if (cap) {
+          toast.textContent = cap;
+          toast.classList.add("show");
+        } else {
+          toast.classList.remove("show");
+        }
+      };
+
+      // expose updater
+      return { updateHUD };
+    }
+
+    // simple SVGs (inline) biar tanpa asset eksternal
+    const SVG = {
+      heart: `<svg viewBox="0 0 64 64" fill="#ff3d7f" xmlns="http://www.w3.org/2000/svg">
+    <path stroke="#000" stroke-width="3" d="M32 56C10 40 6 32 6 22a12 12 0 0 1 22-7
+      a1 1 0 0 0 8 0a12 12 0 0 1 22 7c0 10-4 18-26 34Z"/></svg>`,
+      coin: `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="32" cy="20" rx="22" ry="12" fill="#ffde59" stroke="#000" stroke-width="3"/>
+    <ellipse cx="32" cy="32" rx="22" ry="12" fill="#ffde59" stroke="#000" stroke-width="3"/>
+    <ellipse cx="32" cy="44" rx="22" ry="12" fill="#ffde59" stroke="#000" stroke-width="3"/></svg>`,
+      stick: `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+    <rect x="8" y="30" width="48" height="22" rx="4" fill="#222"
+      stroke="#000" stroke-width="3"/><circle cx="20" cy="24" r="8" fill="#ff3d7f"
+      stroke="#000" stroke-width="3"/><rect x="14" y="24" width="12" height="12" fill="#333"
+      stroke="#000" stroke-width="3"/></svg>`,
+      pad: `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+    <rect x="6" y="26" width="52" height="20" rx="10" fill="#d9d9d9" stroke="#000" stroke-width="3"/>
+    <rect x="16" y="32" width="10" height="8" fill="#333" stroke="#000" stroke-width="3"/>
+    <circle cx="44" cy="36" r="4" fill="#ff3d7f" stroke="#000" stroke-width="3"/>
+    <circle cx="52" cy="36" r="4" fill="#00b6ff" stroke="#000" stroke-width="3"/></svg>`,
+    };
+
+    /** Tambah skin + ornament ke ss-stage */
+    function skinPhotoStage(
+      stageEl,
+      { tagText = "LEVEL UP!", caption = "" } = {}
+    ) {
+      stageEl.classList.add("pixel-frame");
+      // inner white frame (di atas foto)
+      // const inner = document.createElement("div");
+      // inner.className = "inner-frame";
+      // stageEl.appendChild(inner);
+
+      // sprinkles
+      const pix = document.createElement("div");
+      pix.className = "pixies";
+      pix.innerHTML = "<i></i><i></i><i></i>";
+      stageEl.appendChild(pix);
+
+      // stickers
+      const mk = (cls, svg, rot) => {
+        const s = document.createElement("div");
+        s.className = `stk ${cls} bop`;
+        s.style.setProperty("--r", rot || "0deg");
+        s.innerHTML = `<i>${svg}</i>`;
+        stageEl.appendChild(s);
+      };
+      mk("tl", "<i>" + SVG.heart + "</i>", "-4deg");
+      mk("tr", "<i>" + SVG.coin + "</i>", "4deg");
+      mk("bl", SVG.stick, "3deg");
+      mk("br", SVG.pad, "-3deg");
+
+      // bottom ribbon
+      const ribbon = document.createElement("div");
+      ribbon.className = "ss-ribbon";
+      ribbon.innerHTML = `<span class="ss-tag">${tagText}</span><span class="ss-cap"></span>`;
+      stageEl.appendChild(ribbon);
+      const capEl = ribbon.querySelector(".ss-cap");
+
+      return {
+        setCaption(txt) {
+          capEl.textContent = txt || "";
+        },
+      };
+    }
+
+    function enhancePhotoStage(
+      stage,
+      {
+        sprinkleCount = 18,
+        sparkles = true,
+        glint = true,
+        screws = true,
+        colors = ["#ffde59", "#00b6ff", "#ff3d7f", "#baffb3", "#ffffff"],
+      } = {}
+    ) {
+      // pastikan layer ornament ada
+      let pix = stage.querySelector(".pixies");
+      if (!pix) {
+        pix = document.createElement("div");
+        pix.className = "pixies";
+        stage.appendChild(pix);
+      }
+
+      // SPRINKLES (acak posisi & bentuk)
+      pix.innerHTML = "";
+      const W = stage.clientWidth || 300;
+      const H = stage.clientHeight || 200;
+      for (let i = 0; i < sprinkleCount; i++) {
+        const el = document.createElement("i");
+        const kind = Math.random() < 0.6 ? "pix-dot" : "pix-plus";
+        el.className = kind;
+        el.style.left = Math.round(Math.random() * (W - 12)) + "px";
+        el.style.top = Math.round(Math.random() * (H - 12)) + "px";
+        el.style.background =
+          kind === "pix-dot" ? colors[i % colors.length] : "transparent";
+        el.style.color = colors[(i + 2) % colors.length];
+        el.style.opacity = (0.35 + Math.random() * 0.4).toFixed(2);
+        pix.appendChild(el);
+      }
+
+      // SPARKLES yang muncul-hilang
+      if (sparkles) {
+        const spawn = () => {
+          const s = document.createElement("i");
+          s.className = "pix-spark";
+          s.style.left = Math.round(Math.random() * (W - 10)) + "px";
+          s.style.top = Math.round(Math.random() * (H - 10)) + "px";
+          s.style.opacity = "0";
+          pix.appendChild(s);
+          // fade in/out lalu remove
+          s.animate(
+            [{ opacity: 0 }, { opacity: 1, offset: 0.3 }, { opacity: 0 }],
+            { duration: 1800, easing: "ease-in-out" }
+          ).onfinish = () => s.remove();
+        };
+        // sedikit random agar natural
+        stage._sparkTimer && clearInterval(stage._sparkTimer);
+        stage._sparkTimer = setInterval(spawn, 800 + Math.random() * 600);
+      }
+
+      // GLINT sweep layer
+      if (glint && !stage.querySelector(".glint")) {
+        const g = document.createElement("i");
+        g.className = "glint";
+        stage.appendChild(g);
+      }
+
+      // CORNER SCREWS
+      if (screws) {
+        ["tl", "tr", "bl", "br"].forEach((pos) => {
+          if (!stage.querySelector(`.screw.${pos}`)) {
+            const sc = document.createElement("i");
+            sc.className = `screw ${pos}`;
+            stage.appendChild(sc);
+          }
+        });
+      }
+    }
+
     game.scenes.Memories = {
       idx: 0,
       imgs: [
-        "https://picsum.photos/seed/pastel1/800/600",
-        "https://picsum.photos/seed/pastel2/800/600",
-        "https://picsum.photos/seed/pastel3/800/600",
-        "https://picsum.photos/seed/pastel4/800/600",
-        "https://picsum.photos/seed/pastel5/800/600",
-        "https://picsum.photos/seed/pastel6/800/600",
-        "https://picsum.photos/seed/pastel7/800/600",
-        "https://picsum.photos/seed/pastel8/800/600",
+        "/assets/img/memory/foto1.webp",
+        "/assets/img/memory/foto2.webp",
+        "/assets/img/memory/foto3.webp",
+        "/assets/img/memory/foto4.webp",
+        "/assets/img/memory/foto5.webp",
+        "/assets/img/memory/foto6.webp",
+        "/assets/img/memory/foto7.webp",
+        "/assets/img/memory/foto8.webp",
+        "/assets/img/memory/foto9.webp",
+        "/assets/img/memory/foto10.webp",
+        "/assets/img/memory/foto11.webp",
+        "/assets/img/memory/foto12.webp",
+        "/assets/img/memory/foto13.webp",
+        "/assets/img/memory/foto14.webp",
+      ],
+      captions: [
+        "First date trip! :3",
+        "Penembakan duniawi",
+        "After office xixi",
+        "Jamet di Kotu",
+        "Obihiro enak :-)",
+        "Pulang date seruw",
+        "1 month anniv hehe",
+        "WFC date (boong)",
+        "Movie date yay",
+        "Foto eskalator gas",
+        "Movie date (lagi)",
+        "Nunggu Saltbread",
+        "Chill di mobil",
+        "Shopping time :o",
+      ],
+      stamps: [
+        "Bogor, July '25",
+        "BSD, July '25",
+        "Senayan, July '25",
+        "Kota Tua, August '25",
+        "Serpong, August '25",
+        "Cikupa, August '25",
+        "Kuningan, August '25",
+        "Saber, September '25",
+        "Gatsu, September '25",
+        "TA, September '25",
+        "Karci, October '25",
+        "Serpong, October '25",
+        "Cideng, October '25",
+        "Senayan, October '25",
       ],
 
       enter() {
@@ -1665,8 +1896,8 @@ export async function startGame() {
         sub.style.textAlign = "center";
         sub.style.opacity = ".75";
         box.appendChild(sub);
-
         const wrap = document.createElement("div");
+
         wrap.className = "ss-wrap";
         wrap.innerHTML = `
               <div class="ss-stage pixel-border">
@@ -1678,10 +1909,28 @@ export async function startGame() {
             `;
 
         const stage = $(".ss-stage", wrap);
+        enhancePhotoStage(stage, {
+          sprinkleCount: 48, // tambah keramaian
+          sparkles: true,
+          glint: true,
+          screws: true,
+        });
+        const stamp = document.createElement("div");
+        stamp.className = "ss-stamp";
+        stage.appendChild(stamp);
+        this._stampEl = stamp;
         const img = $("img", wrap);
         const prevBtn = $(".prev", wrap);
         const nextBtn = $(".next", wrap);
         const dots = $(".ss-dots", wrap);
+        const skin = skinPhotoStage(stage, { tagText: "LEVEL UP!" });
+
+        const overlays = attachPhotoOverlays(
+          stage,
+          () => this.idx,
+          () => this.imgs.length,
+          (i) => this.captions?.[i] || ""
+        );
 
         const makeDots = () => {
           dots.innerHTML = "";
@@ -1702,6 +1951,19 @@ export async function startGame() {
           [...dots.children].forEach((d, i) =>
             d.setAttribute("aria-selected", String(i === this.idx))
           );
+          // set caption per slide (opsional)
+          const cap =
+            this.captions?.[this.idx] || `${this.idx + 1}/${this.imgs.length}`;
+          skin.setCaption(cap);
+
+          // update stamp
+          const txt = (this.stamps && this.stamps[this.idx]) || "";
+          if (txt) {
+            this._stampEl.textContent = txt;
+            this._stampEl.style.display = "inline-block";
+          } else {
+            this._stampEl.style.display = "none";
+          }
         };
 
         this.go = (i, play = true) => {
@@ -1795,7 +2057,7 @@ export async function startGame() {
         this.box.className = "msg-box ui-box";
 
         this.content = document.createElement("div");
-        this.content.className = "msg-content";
+        this.content.className = "msg-content paper-8";
         this.box.appendChild(this.content);
 
         wrap.append(head, this.box);
@@ -1865,8 +2127,8 @@ export async function startGame() {
 
         const img = new Image();
         img.alt = "Love card";
-        img.src = "https://picsum.photos/seed/lovecard/960/640";
-        img.onerror = () => (img.src = "https://picsum.photos/960/640?blur=1");
+        img.src = "/assets/img/card/birthdaycard.png";
+        img.onerror = () => (img.src = "/assets/img/card/birthdaycard.webp");
         img.style.maxWidth = "100%";
         img.style.maxHeight = "100%";
         frame.appendChild(img);
@@ -1891,8 +2153,8 @@ export async function startGame() {
         row.style.gap = "10px";
         row.style.marginTop = "10px";
 
-        const btnSave = ui.btn("Download PNG");
-        const btnGo = ui.btn("Grand Finale →");
+        const btnSave = ui.btn("Download");
+        const btnGo = ui.btn("Grand Finale >");
 
         btnSave.addEventListener("click", () => {
           const w = window.open(img.src, "_blank", "noopener,noreferrer");
@@ -1940,12 +2202,39 @@ export async function startGame() {
         const box = document.createElement("div");
         box.className = "ui-box center";
 
+        const stars = calcStars(game.progress);
+        const { grade, note } = rankFor(stars);
+
         const h = document.createElement("h2");
-        h.textContent = t("outro.title");
+        h.textContent = "Happy Birthday, Natasya! 💖";
 
-        const p = ui.p(t("outro.text"));
+        // scoreboard mini
+        const score = document.createElement("div");
+        score.className = "scoreboard pixel-border";
+        score.innerHTML = `
+          <div class="row">
+            <span>Stars</span>
+            <b>${stars}/${TOTAL_STARS}</b>
+          </div>
+          <div class="row">
+            <span>Rank</span>
+            <b class="rank">${grade}</b>
+          </div>
+          <div class="row note">
+            <span>Note</span>
+            <i>${note}</i>
+          </div>
+        `;
 
-        const btn = ui.btn(t("outro.restart"));
+        const p = ui.p(
+          stars === TOTAL_STARS
+            ? "Makasih banyak udah nyelesaiin semua level di game ini ya bub, semoga kamu suka, kasih feedback via WhatsApp ya! 🥹"
+            : "Makasih banyak udah nyelesaiin semua level di game ini ya bub, semoga kamu suka, kasih feedback via WhatsApp ya! 🥹"
+        );
+
+        const btn = ui.btn(
+          stars === TOTAL_STARS ? "Play again?" : "Try for S-Rank"
+        );
         btn.classList.add("outro-btn");
         btn.addEventListener("click", () => {
           game.progress.clear();
@@ -1954,15 +2243,19 @@ export async function startGame() {
           game.setScene("Intro");
         });
 
-        box.append(h, p, btn);
+        box.append(h, score, p, btn);
 
-        // Type title → paragraph; reveal button after
+        // Ketik judul → paragraf; lalu reveal tombol
         typeTitle(box, { subEl: p, titleSpeed: 54, subSpeed: 46 }).then(() => {
           requestAnimationFrame(() => btn.classList.add("show"));
         });
 
+        // bonus confetti kalau perfect
+        if (stars === TOTAL_STARS) confettiBurst("finale");
+
         return box;
       },
+
       exit() {},
       onA() {
         game.setScene("Intro", "iris");
@@ -2252,7 +2545,8 @@ export async function startGame() {
     // 14) Bootstrap
     // ---------------------------------------------------------------------------
     ensureBalloonsLayer();
-    coach.startIfNeeded();
+    // coach.startIfNeeded();
+    game.setScene("Memories");
   })();
 
   // ==== END: paste ====
