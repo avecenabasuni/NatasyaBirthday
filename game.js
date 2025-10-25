@@ -176,9 +176,9 @@ export async function startGame() {
         title: "Message",
         sub: "A letter for you…",
         paras: [
-          "happy birthday my love. tidak terasa kita sudah 3 bulan pacaran bub dan tidak terasa kamu pun udah ulang tahun, aku ingin berterima kasih sudah hadir di hidup ku, hari-hari ku jadi penuh dengan tawa dan canda pas ada kamu hihi.",
-          "pertama kali call kamu, aku suka banget denger kamu ngomong pake suara bayi :3 terus juga kamu sangat rajin weh, kamu sangat pengen terus belajar dan punya goals yang pengen kamu gapai. hal-hal kecil kaya kirimin pap cantik kamu tiap harina membuat hari-hariku berwarna hehehe.",
-          "setiap momen sama kamu sangat berkesan buat aku, semoga kedepannya kita bisa buat memori bahagia lainnya ya sayang. doaku: semoga kamu bisa mendapatkan s2 di kampus terbaik untuk dirimu!",
+          "happy birthday my love. ga kerasa ya bub udah 3 bulan kita pacaran dan kamu pun sekarang ulang tahun, aku ingin berterima kasih sudah hadir di hidup ku, hari-hari ku jadi penuh dengan canda dan tawa pas ada kamu hihi.",
+          "dari pertama kali call kamu aja aku langsung suka banget denger kamu ngomong pake suara bayi :3 terus juga kamu rajin banget weh, selalu pengen belajar dan punya banyak mimpi yang pengen kamu kejar. hal kecil kaya kamu kirimin pap cantik tiap harina membuat hariku berwarna hehehe.",
+          "setiap momen sama kamu berkesan banget buat aku, semoga kedepannya kita bisa buat memori bahagia lainnya ya sayang. doaku, semoga kamu bisa mendapatkan s2 di kampus terbaik buatmu! dan semoga semua yang kamu cita-citakan jadi nyata. love you always bub🤍",
         ],
         hintA: "Tap A to continue",
       },
@@ -2206,7 +2206,7 @@ export async function startGame() {
         const { grade, note } = rankFor(stars);
 
         const h = document.createElement("h2");
-        h.textContent = "Happy Birthday, Natasya! 💖";
+        h.textContent = "Happy Birthday Nata! 💖";
 
         // scoreboard mini
         const score = document.createElement("div");
@@ -2545,8 +2545,8 @@ export async function startGame() {
     // 14) Bootstrap
     // ---------------------------------------------------------------------------
     ensureBalloonsLayer();
-    coach.startIfNeeded();
-    // game.setScene("Memories");
+    // coach.startIfNeeded();
+    game.setScene("Memories");
   })();
 
   // ==== END: paste ====
