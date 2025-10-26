@@ -114,7 +114,7 @@ export async function startGame() {
               "Lucu amay lucu amay hehehe",
               "Tidak peduli sama sekali, buka TikTok sampe lupa waktu",
               "Tidur 24x7x365",
-              "Jadi semangat belajar ngoding Python (si paling data science bro)",
+              "Jadi semangat belajar course IBM (si paling data science bro)",
             ],
             praise:
               "hehehe makasih ya sayang udah apresiasi hehe 💖 Even from miles away, I still wanna make you smile.",
@@ -125,13 +125,12 @@ export async function startGame() {
               "Nyenyenye terus peluk akuuw 🥺",
               "Liatin aje dari jauh, terus pura-pura ga liat (deja vu pas mini soccer)",
               "Naik gunung tertinggi di Australia",
-              "Bodo amat, main HP terus lanjut scroll TikTok aje",
+              "Bodo amat, sibuk jalan jalan",
             ],
-            praise:
-              "WKWKWKWK the classic you that I love, sending virtual hug(s) for you my love 💛",
+            praise: "WKWKWKWK kamu banget gak sih seng?? peluk virtual hihi 💛",
           },
           {
-            q: "Plis pas main ini kamu senyum-senyum dong, kalo gak yaudah lah aku sedih HUH. Tapi, kalau kamu cuma bisa ngomong satu hal ke aku sekarang, apa yang mau kamu omongin ke aku?",
+            q: "Plis pas main ini kamu senyum-senyum dong, kalo gak yaudah lah aku sedih HUH. Sekarang bayangin kamu cuma boleh bilang SATU kalimat ke aku... apa yang kamu pilih?",
             a: [
               "I miss you so much (aww me too bub), tapi yaudah pura-pura gak kangen aja deh",
               "Nyenyenye",
@@ -139,7 +138,7 @@ export async function startGame() {
               "Ribut yuk?",
             ],
             praise:
-              "Kurang natasya ape lagi, half denial, half feelings, and somehow still the warmest thing ever for me 🩶",
+              "Kurang natasya ape lagi, setengah denial setengah manja xixi, and somehow still the warmest thing ever for me 🩶",
           },
         ],
         finishTitle: "You nailed it!",
@@ -152,9 +151,9 @@ export async function startGame() {
           "Semoga semua harapan kamu terkabul ya sayang",
           "Makasih udah sabar sama aku yang ngeselin ini hehe",
           "Aku sayang sama kamu banget banget banget",
-          "Semoga kamu selalu sehat dan bahagia ya bub",
-          "Makasih udah jadi diri kamu yang sangat thoughtful dan penyayang",
-          "You're my favorite person in the whole wide world",
+          "Aku mau kamu sehat dan happy terus ya bub",
+          "Makasih udah jadi kamu yang super perhatian dan manis banget ke aku",
+          "You're literally my favorite person in the whole wide world",
           "You deserve all the gentle things.",
           "Aku selalu dukung kamu.",
         ],
@@ -163,7 +162,7 @@ export async function startGame() {
         title: "Make a Wish, Bub! ✨",
         sub: "Take a deep breath, and make a wish just for yourself bub. Tahan tombol di bawah yaa buat tiup lilinnya 🕯️",
         hold: "Press & Hold",
-        granted: "Wish granted! Master's degree here we go!",
+        granted: "Wish granted! Here we go!",
       },
       memories: {
         title: "Memory Lane",
@@ -177,8 +176,8 @@ export async function startGame() {
         sub: "A letter for you…",
         paras: [
           "happy birthday my love. ga kerasa ya bub udah 3 bulan kita pacaran dan kamu pun sekarang ulang tahun, aku ingin berterima kasih sudah hadir di hidup ku, hari-hari ku jadi penuh dengan canda dan tawa pas ada kamu hihi.",
-          "dari pertama kali call kamu aja aku langsung suka banget denger kamu ngomong pake suara bayi :3 terus juga kamu rajin banget weh, selalu pengen belajar dan punya banyak mimpi yang pengen kamu kejar. hal kecil kaya kamu kirimin pap cantik tiap harina membuat hariku berwarna hehehe.",
-          "setiap momen sama kamu berkesan banget buat aku, semoga kedepannya kita bisa buat memori bahagia lainnya ya sayang. doaku, semoga kamu bisa mendapatkan s2 di kampus terbaik buatmu! dan semoga semua yang kamu cita-citakan jadi nyata. love you always bub🤍",
+          "dari pertama kali call kamu aja aku langsung suka banget denger kamu pake suara bayi :3 terus juga kamu rajin banget weh, selalu pengen belajar dan punya banyak mimpi yang kamu kejar. hal kecil kaya kamu kirimin pap cantik tiap harina membuat hariku berwarna hehehe.",
+          "setiap momen sama kamu berkesan banget buat aku, semoga kedepannya kita bisa buat memori bahagia lainnya yaa! doaku, semoga kamu bisa mendapatkan s2 di kampus terbaik buatmu! semoga semua yang kamu cita-citakan jadi nyata. love you always bub🤍",
         ],
         hintA: "Tap A to continue",
       },
@@ -996,6 +995,7 @@ export async function startGame() {
     ) {
       const token = TYPE_ABORT;
       const items = [...list.querySelectorAll("li")];
+
       items.forEach((li) => {
         li.style.opacity = "0";
         li.style.pointerEvents = "none";
@@ -1004,23 +1004,35 @@ export async function startGame() {
 
       for (const li of items) {
         if (TYPE_ABORT !== token) return;
+
         const btn = li.querySelector(".opt");
         const badge = btn.querySelector(".badge");
         const label = btn.querySelector("span:last-child");
-        const b = badge.textContent;
-        const t = label.textContent;
 
+        // sekarang ambil teks dari data-full, bukan innerText yg udah kita kosongin
+        const bFull = badge.dataset.full || "";
+        const tFull = label.dataset.full || "";
+
+        // kosongin dulu buat efek ketik
         badge.textContent = "";
         label.textContent = "";
+
+        // tunjukin li-nya
         li.style.opacity = "1";
 
-        await typeInto(badge, b, badgeSpeed);
+        // ketik badge huruf (A/B/C/D)
+        await typeInto(badge, bFull, badgeSpeed);
+
+        // jeda kecil terus ketik kalimatnya
         await sleep(afterBadgeGap);
         if (TYPE_ABORT !== token) return;
-        await typeInto(label, t, textSpeed);
+        await typeInto(label, tFull, textSpeed);
 
+        // aktifkan klik utk opsi yg udah kelar diketik
         li.style.pointerEvents = "";
         li.inert = false;
+
+        // jeda sebelum lanjut ke opsi berikutnya
         await sleep(gapBetween);
       }
     }
@@ -1288,26 +1300,59 @@ export async function startGame() {
       idx: 0,
       _onClick: null,
       locked: false,
+      listEl: null, // <— simpan UL biar bisa kita force-reveal nanti
+
+      // helper: kalau user udah klik (apalagi salah) dan animasi belum selesai,
+      // kita paksa semua opsi nongol full biar C/D ga ngilang
+      revealAllOptions() {
+        const list = this.listEl;
+        if (!list) return;
+        list.querySelectorAll("li").forEach((li) => {
+          li.style.opacity = "1";
+          li.style.pointerEvents = "";
+          li.inert = false;
+
+          const badge = li.querySelector(".badge");
+          const label = li.querySelector("span:last-child");
+
+          if (badge && badge.dataset.full) {
+            badge.textContent = badge.dataset.full;
+          }
+          if (label && label.dataset.full) {
+            label.textContent = label.dataset.full;
+          }
+        });
+      },
 
       build() {
         const box = ui.box(t("quiz.title"));
+
         const wrap = document.createElement("div");
         wrap.className = "quiz";
+
         const q = ui.p(t("quiz.items")[this.idx].q);
         wrap.appendChild(q);
 
         const list = document.createElement("ul");
         list.setAttribute("role", "list");
+
         const letters = ["A", "B", "C", "D"];
         const frag = document.createDocumentFragment();
 
         t("quiz.items")[this.idx].a.forEach((txt, k) => {
           const li = document.createElement("li");
+
           const btn = document.createElement("button");
           btn.className = "opt";
           btn.type = "button";
           btn.dataset.index = String(k);
-          btn.innerHTML = `<span class="badge">${letters[k]}</span> <span>${txt}</span>`;
+
+          // simpan teks full di data-full supaya kita bisa force-reveal kapan aja
+          btn.innerHTML = `
+            <span class="badge" data-full="${letters[k]}">${letters[k]}</span>
+            <span data-full="${txt}">${txt}</span>
+          `;
+
           li.appendChild(btn);
           frag.appendChild(li);
         });
@@ -1315,11 +1360,19 @@ export async function startGame() {
         list.appendChild(frag);
         box.appendChild(wrap);
 
+        // animasi: ketik judul, terus baru reveal opsi satu-satu
         typeTitle(box, { subEl: q, titleSpeed: 54, subSpeed: 46 }).then(() => {
           wrap.appendChild(list);
+
+          // simpan UL biar bisa kita akses nanti dari onClick
+          this.listEl = list;
+
+          // sembunyiin bentar biar gak kedip
           list.style.visibility = "hidden";
           requestAnimationFrame(() => {
             list.style.visibility = "";
+
+            // mulai animasi muncul A→B→C→D
             typeQuizOptions(list, {
               badgeSpeed: 40,
               textSpeed: 46,
@@ -1335,23 +1388,30 @@ export async function startGame() {
       enter() {
         this.idx = 0;
         this.locked = false;
+        this.listEl = null;
+
         const el = this.build();
 
         this._onClick = (e) => {
           const btn = safeClosest(e.target, ".opt");
           if (!btn || this.locked) return;
 
-          // Prevent SFX carry-over to next question
+          // begitu ada klik, kita stop semua animasi typing supaya gak double-SFX
           abortTyping();
 
           const k = Number(btn.dataset.index);
+
+          // kalau jawaban bener (index 0) ---------------------------------
           if (k === 0) {
             this.locked = true;
+
             const praise =
               t("quiz.items")[this.idx]?.praise || t("quiz.finishTitle");
+
             audio.play("confirm");
             vibe(10);
 
+            // disable semua opsi + styling green di jawaban bener
             $$(".opt", root).forEach((o) => {
               o.disabled = true;
               o.inert = true;
@@ -1361,27 +1421,34 @@ export async function startGame() {
 
             const card = $(".ui-box", root);
             const title = $(".ui-box h1", root);
+
             const d = document.createElement("div");
             d.className = "dialog praise";
             const p = document.createElement("div");
             d.appendChild(p);
+
             card.replaceChildren(title, d);
 
             typeText(p, praise, 46, () => {
               setTimeout(() => {
                 this.idx++;
                 this.locked = false;
+
                 if (this.idx < QUIZ.length) {
+                  // next question
                   abortTyping();
                   card.replaceWith(this.build());
                 } else {
+                  // quiz selesai
                   const finCard = ui.box(t("quiz.finishTitle"));
                   const fin = document.createElement("div");
                   fin.className = "dialog praise";
                   const sub = document.createElement("div");
                   fin.appendChild(sub);
                   finCard.appendChild(fin);
+
                   layers.stage.replaceChildren(finCard);
+
                   typeText(sub, t("quiz.finishText"), 46, () => {
                     setTimeout(() => {
                       confettiBurst("mini");
@@ -1392,15 +1459,22 @@ export async function startGame() {
                 }
               }, 620);
             });
-          } else {
-            abortTyping();
-            audio.play("cancel");
-            vibe(35);
-            root.classList.add("shake");
-            setTimeout(() => root.classList.remove("shake"), 160);
-            btn.classList.add("wrong");
-            setTimeout(() => btn.classList.remove("wrong"), 360);
+
+            return;
           }
+
+          // kalau jawaban salah (index != 0) ---------------------------------
+          // force reveal semua opsi dulu, biar C & D gak ilang
+          this.revealAllOptions();
+
+          audio.play("cancel");
+          vibe(35);
+
+          root.classList.add("shake");
+          setTimeout(() => root.classList.remove("shake"), 160);
+
+          btn.classList.add("wrong");
+          setTimeout(() => btn.classList.remove("wrong"), 360);
         };
 
         root.addEventListener("click", this._onClick);
@@ -1410,12 +1484,14 @@ export async function startGame() {
       exit() {
         root.removeEventListener("click", this._onClick);
         this._onClick = null;
+        this.listEl = null;
       },
 
       onA() {},
       onB() {
-        if (this.idx === 0) game.setScene("Intro");
-        else {
+        if (this.idx === 0) {
+          game.setScene("Intro");
+        } else {
           this.idx--;
           layers.stage.replaceChildren(this.build());
         }
@@ -1843,8 +1919,8 @@ export async function startGame() {
       idx: 0,
       imgs: [
         "/assets/img/memory/foto1.webp",
-        "/assets/img/memory/foto2.webp",
         "/assets/img/memory/foto3.webp",
+        "/assets/img/memory/foto2.webp",
         "/assets/img/memory/foto4.webp",
         // "/assets/img/memory/foto5.webp",
         "/assets/img/memory/foto6.webp",
@@ -1859,8 +1935,8 @@ export async function startGame() {
       ],
       captions: [
         "First date trip! :3",
-        "Penembakan duniawi",
         "After office xixi",
+        "Penembakan duniawi",
         "Jamet di Kotu",
         // "Obihiro enak :-)",
         "Pulang date seruw",
@@ -1875,8 +1951,8 @@ export async function startGame() {
       ],
       stamps: [
         "Bogor, July '25",
-        "BSD, July '25",
         "Senayan, July '25",
+        "BSD, July '25",
         "Kota Tua, August '25",
         // "Serpong, August '25",
         "Cikupa, August '25",
@@ -2545,8 +2621,8 @@ export async function startGame() {
     // 14) Bootstrap
     // ---------------------------------------------------------------------------
     ensureBalloonsLayer();
-    // coach.startIfNeeded();
-    game.setScene("Memories");
+    coach.startIfNeeded();
+    // game.setScene("Memories");
   })();
 
   // ==== END: paste ====
